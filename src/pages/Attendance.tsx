@@ -12,11 +12,13 @@ import { Calendar as CalendarIcon, Check, X } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AttendanceStatus = "present" | "absent";
 
 const Attendance = () => {
-  const { subjects, attendanceRecords, markAttendance, getSubjectAttendance } = useAttendance();
+  const { user } = useAuth();
+  const { subjects, attendanceRecords, markAttendance, getSubjectAttendance, isLoading } = useAttendance();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -26,6 +28,13 @@ const Attendance = () => {
   const [note, setNote] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("mark");
   const [viewMonth, setViewMonth] = useState<Date>(new Date());
+  
+  // If not logged in, redirect to login
+  React.useEffect(() => {
+    if (!user && !isLoading) {
+      navigate("/login");
+    }
+  }, [user, isLoading, navigate]);
   
   // Effect to handle URL params for direct access
   useEffect(() => {
@@ -117,6 +126,21 @@ const Attendance = () => {
       ? "bg-green-100 hover:bg-green-200 text-green-800 border-green-300" 
       : "bg-red-100 hover:bg-red-200 text-red-800 border-red-300";
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading attendance data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // We'll redirect in the useEffect
+  }
 
   return (
     <div className="space-y-6">

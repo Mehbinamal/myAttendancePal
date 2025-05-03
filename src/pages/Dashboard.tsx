@@ -10,14 +10,23 @@ import { useNavigate } from "react-router-dom";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
-  const { subjects, attendanceRecords, getAttendanceStats, getAttendanceForDate } = useAttendance();
+  const { user } = useAuth();
+  const { subjects, attendanceRecords, getAttendanceStats, getAttendanceForDate, isLoading } = useAttendance();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const formattedDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
   
   const todaysAttendance = getAttendanceForDate(formattedDate);
+
+  // If not logged in, redirect to login
+  React.useEffect(() => {
+    if (!user && !isLoading) {
+      navigate("/login");
+    }
+  }, [user, isLoading, navigate]);
 
   // Sort subjects by attendance percentage
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -27,8 +36,23 @@ const Dashboard = () => {
   });
 
   const subjectsWithNoAttendanceToday = subjects.filter(
-    subject => !todaysAttendance.some(record => record.subjectId === subject.id)
+    subject => !todaysAttendance.some(record => record.subject_id === subject.id)
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // We'll redirect in the useEffect
+  }
 
   return (
     <div className="space-y-6">

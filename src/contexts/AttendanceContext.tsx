@@ -2,19 +2,20 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Subject = {
   id: string;
   name: string;
   description?: string;
-  userId: string;
-  createdAt: string;
+  user_id: string;
+  created_at: string;
 };
 
 export type AttendanceRecord = {
   id: string;
-  subjectId: string;
-  userId: string;
+  subject_id: string;
+  user_id: string;
   date: string;
   status: "present" | "absent";
   note?: string;
@@ -23,10 +24,11 @@ export type AttendanceRecord = {
 type AttendanceContextType = {
   subjects: Subject[];
   attendanceRecords: AttendanceRecord[];
-  addSubject: (name: string, description?: string) => void;
-  updateSubject: (id: string, name: string, description?: string) => void;
-  deleteSubject: (id: string) => void;
-  markAttendance: (subjectId: string, date: string, status: "present" | "absent", note?: string) => void;
+  isLoading: boolean;
+  addSubject: (name: string, description?: string) => Promise<void>;
+  updateSubject: (id: string, name: string, description?: string) => Promise<void>;
+  deleteSubject: (id: string) => Promise<void>;
+  markAttendance: (subjectId: string, date: string, status: "present" | "absent", note?: string) => Promise<void>;
   getSubjectAttendance: (subjectId: string) => AttendanceRecord[];
   getAttendanceForDate: (date: string) => AttendanceRecord[];
   getAttendanceStats: (subjectId: string) => { present: number; absent: number; total: number; percentage: number };
@@ -34,147 +36,213 @@ type AttendanceContextType = {
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
-const SUBJECTS_STORAGE_KEY = "attendanceApp_subjects";
-const ATTENDANCE_STORAGE_KEY = "attendanceApp_attendance";
-
 export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load data from localStorage when user changes
+  // Load data when user changes
   useEffect(() => {
     if (user) {
-      // Load subjects for current user
-      const storedSubjects = JSON.parse(localStorage.getItem(SUBJECTS_STORAGE_KEY) || "[]");
-      setSubjects(storedSubjects.filter((subject: Subject) => subject.userId === user.id));
-
-      // Load attendance records for current user
-      const storedAttendance = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || "[]");
-      setAttendanceRecords(storedAttendance.filter((record: AttendanceRecord) => record.userId === user.id));
+      loadData();
     } else {
       // Reset data when user logs out
       setSubjects([]);
       setAttendanceRecords([]);
+      setIsLoading(false);
     }
   }, [user]);
 
+  // Load data from Supabase
+  const loadData = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Load subjects
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (subjectsError) {
+        throw subjectsError;
+      }
+      
+      // Load attendance records
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*');
+      
+      if (attendanceError) {
+        throw attendanceError;
+      }
+      
+      setSubjects(subjectsData);
+      setAttendanceRecords(attendanceData.map(record => ({
+        ...record,
+        subject_id: record.subject_id,
+      })));
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Failed to load your data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Subject operations
-  const addSubject = (name: string, description?: string) => {
+  const addSubject = async (name: string, description?: string) => {
     if (!user) return;
     
-    const newSubject: Subject = {
-      id: crypto.randomUUID(),
-      name,
-      description,
-      userId: user.id,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Update local state
-    setSubjects([...subjects, newSubject]);
-    
-    // Update localStorage with all subjects (including from other users)
-    const allSubjects = JSON.parse(localStorage.getItem(SUBJECTS_STORAGE_KEY) || "[]");
-    localStorage.setItem(SUBJECTS_STORAGE_KEY, JSON.stringify([...allSubjects, newSubject]));
-    
-    toast.success(`Subject "${name}" added successfully`);
+    try {
+      const newSubject = {
+        name,
+        description,
+        user_id: user.id,
+      };
+      
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert(newSubject)
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSubjects([data, ...subjects]);
+      toast.success(`Subject "${name}" added successfully`);
+    } catch (error) {
+      console.error("Error adding subject:", error);
+      toast.error("Failed to add subject");
+    }
   };
 
-  const updateSubject = (id: string, name: string, description?: string) => {
+  const updateSubject = async (id: string, name: string, description?: string) => {
     if (!user) return;
     
-    // Update local state
-    const updatedSubjects = subjects.map(subject => 
-      subject.id === id ? { ...subject, name, description } : subject
-    );
-    setSubjects(updatedSubjects);
-    
-    // Update localStorage
-    const allSubjects = JSON.parse(localStorage.getItem(SUBJECTS_STORAGE_KEY) || "[]");
-    const updatedAllSubjects = allSubjects.map((subject: Subject) => 
-      subject.id === id ? { ...subject, name, description } : subject
-    );
-    localStorage.setItem(SUBJECTS_STORAGE_KEY, JSON.stringify(updatedAllSubjects));
-    
-    toast.success(`Subject "${name}" updated successfully`);
+    try {
+      const updates = {
+        name,
+        description,
+      };
+      
+      const { error } = await supabase
+        .from('subjects')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSubjects(subjects.map(subject => 
+        subject.id === id ? { ...subject, ...updates } : subject
+      ));
+      
+      toast.success(`Subject "${name}" updated successfully`);
+    } catch (error) {
+      console.error("Error updating subject:", error);
+      toast.error("Failed to update subject");
+    }
   };
 
-  const deleteSubject = (id: string) => {
+  const deleteSubject = async (id: string) => {
     if (!user) return;
     
-    // Get the subject name before deletion
-    const subjectToDelete = subjects.find(subject => subject.id === id);
-    if (!subjectToDelete) return;
-    
-    // Update local state
-    setSubjects(subjects.filter(subject => subject.id !== id));
-    
-    // Also delete related attendance records
-    const updatedRecords = attendanceRecords.filter(record => record.subjectId !== id);
-    setAttendanceRecords(updatedRecords);
-    
-    // Update localStorage
-    const allSubjects = JSON.parse(localStorage.getItem(SUBJECTS_STORAGE_KEY) || "[]");
-    const allAttendance = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || "[]");
-    
-    localStorage.setItem(SUBJECTS_STORAGE_KEY, JSON.stringify(allSubjects.filter((s: Subject) => s.id !== id)));
-    localStorage.setItem(
-      ATTENDANCE_STORAGE_KEY, 
-      JSON.stringify(allAttendance.filter((a: AttendanceRecord) => a.subjectId !== id))
-    );
-    
-    toast.success(`Subject "${subjectToDelete.name}" deleted successfully`);
+    try {
+      // Get the subject name before deletion
+      const subjectToDelete = subjects.find(subject => subject.id === id);
+      if (!subjectToDelete) return;
+      
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setSubjects(subjects.filter(subject => subject.id !== id));
+      
+      // Attendance records will be automatically deleted by the ON DELETE CASCADE constraint
+      setAttendanceRecords(attendanceRecords.filter(record => record.subject_id !== id));
+      
+      toast.success(`Subject "${subjectToDelete.name}" deleted successfully`);
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      toast.error("Failed to delete subject");
+    }
   };
 
   // Attendance operations
-  const markAttendance = (subjectId: string, date: string, status: "present" | "absent", note?: string) => {
+  const markAttendance = async (subjectId: string, date: string, status: "present" | "absent", note?: string) => {
     if (!user) return;
     
-    // Check if an attendance record for this subject and date already exists
-    const existingRecord = attendanceRecords.find(
-      record => record.subjectId === subjectId && record.date === date
-    );
-    
-    if (existingRecord) {
-      // Update existing record
-      const updatedRecords = attendanceRecords.map(record => 
-        record.id === existingRecord.id ? { ...record, status, note } : record
+    try {
+      // Check if an attendance record for this subject and date already exists
+      const existingRecord = attendanceRecords.find(
+        record => record.subject_id === subjectId && record.date === date
       );
-      setAttendanceRecords(updatedRecords);
       
-      // Update localStorage
-      const allAttendance = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || "[]");
-      const updatedAllAttendance = allAttendance.map((record: AttendanceRecord) => 
-        record.id === existingRecord.id ? { ...record, status, note } : record
-      );
-      localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(updatedAllAttendance));
-      
-      toast.success("Attendance updated successfully");
-    } else {
-      // Create new record
-      const newRecord: AttendanceRecord = {
-        id: crypto.randomUUID(),
-        subjectId,
-        userId: user.id,
-        date,
-        status,
-        note,
-      };
-      
-      // Update local state
-      setAttendanceRecords([...attendanceRecords, newRecord]);
-      
-      // Update localStorage
-      const allAttendance = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || "[]");
-      localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify([...allAttendance, newRecord]));
-      
-      toast.success("Attendance marked successfully");
+      if (existingRecord) {
+        // Update existing record
+        const updates = {
+          status,
+          note,
+        };
+        
+        const { error } = await supabase
+          .from('attendance')
+          .update(updates)
+          .eq('id', existingRecord.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        setAttendanceRecords(attendanceRecords.map(record => 
+          record.id === existingRecord.id ? { ...record, ...updates } : record
+        ));
+        
+        toast.success("Attendance updated successfully");
+      } else {
+        // Create new record
+        const newRecord = {
+          subject_id: subjectId,
+          user_id: user.id,
+          date,
+          status,
+          note,
+        };
+        
+        const { data, error } = await supabase
+          .from('attendance')
+          .insert(newRecord)
+          .select()
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        setAttendanceRecords([...attendanceRecords, data]);
+        toast.success("Attendance marked successfully");
+      }
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      toast.error("Failed to mark attendance");
     }
   };
 
   const getSubjectAttendance = (subjectId: string) => {
-    return attendanceRecords.filter(record => record.subjectId === subjectId);
+    return attendanceRecords.filter(record => record.subject_id === subjectId);
   };
 
   const getAttendanceForDate = (date: string) => {
@@ -196,6 +264,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       value={{
         subjects,
         attendanceRecords,
+        isLoading,
         addSubject,
         updateSubject,
         deleteSubject,

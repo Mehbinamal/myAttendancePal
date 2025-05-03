@@ -13,9 +13,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Subjects = () => {
-  const { subjects, addSubject, updateSubject, deleteSubject, getAttendanceStats } = useAttendance();
+  const { user } = useAuth();
+  const { subjects, addSubject, updateSubject, deleteSubject, getAttendanceStats, isLoading } = useAttendance();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -23,6 +26,14 @@ const Subjects = () => {
   const [newSubjectDescription, setNewSubjectDescription] = useState("");
   const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  
+  // If not logged in, redirect to login
+  React.useEffect(() => {
+    if (!user && !isLoading) {
+      navigate("/login");
+    }
+  }, [user, isLoading, navigate]);
 
   const handleAddSubject = () => {
     if (newSubjectName.trim()) {
@@ -70,6 +81,21 @@ const Subjects = () => {
     setCurrentSubject(subject);
     setIsDeleteDialogOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading subjects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // We'll redirect in the useEffect
+  }
 
   return (
     <div className="space-y-6">
@@ -166,7 +192,7 @@ const Subjects = () => {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Created on {format(parseISO(subject.createdAt), "PP")}
+                      Created on {format(parseISO(subject.created_at), "PP")}
                     </div>
                   </div>
                 </CardContent>
