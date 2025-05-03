@@ -48,7 +48,7 @@ const Navbar = () => {
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2 mr-2">
-              <span className="text-sm font-medium">Hi, {user?.name}</span>
+              <span className="text-sm font-medium">Hi, {user?.name || "User"}</span>
             </div>
             <Button onClick={handleLogout} variant="outline" size="sm">
               Logout

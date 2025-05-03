@@ -81,10 +81,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       
       setSubjects(subjectsData);
-      setAttendanceRecords(attendanceData.map(record => ({
+      
+      // Ensure status is 'present' or 'absent' - handle type casting
+      const typedAttendanceRecords = attendanceData.map(record => ({
         ...record,
-        subject_id: record.subject_id,
-      })));
+        status: record.status === 'present' ? 'present' : 'absent'
+      } as AttendanceRecord));
+      
+      setAttendanceRecords(typedAttendanceRecords);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load your data");
@@ -207,6 +211,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           throw error;
         }
         
+        // Update local state with type safety
         setAttendanceRecords(attendanceRecords.map(record => 
           record.id === existingRecord.id ? { ...record, ...updates } : record
         ));
@@ -232,7 +237,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           throw error;
         }
         
-        setAttendanceRecords([...attendanceRecords, data]);
+        // Add to local state with type safety
+        setAttendanceRecords([...attendanceRecords, {
+          ...data,
+          status: data.status as "present" | "absent"
+        }]);
+        
         toast.success("Attendance marked successfully");
       }
     } catch (error) {

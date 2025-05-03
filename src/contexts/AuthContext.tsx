@@ -4,8 +4,13 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Extend User type to include metadata
+type ExtendedUser = User & {
+  name?: string;
+};
+
 type AuthContextType = {
-  user: User | null;
+  user: ExtendedUser | null;
   session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
@@ -16,7 +21,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,7 +31,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Add name from user metadata
+          const extendedUser: ExtendedUser = {
+            ...session.user,
+            name: session.user.user_metadata?.name || "User"
+          };
+          setUser(extendedUser);
+        } else {
+          setUser(null);
+        }
         setIsLoading(false);
       }
     );
@@ -34,7 +48,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Add name from user metadata
+        const extendedUser: ExtendedUser = {
+          ...session.user,
+          name: session.user.user_metadata?.name || "User"
+        };
+        setUser(extendedUser);
+      } else {
+        setUser(null);
+      }
       setIsLoading(false);
     });
 
