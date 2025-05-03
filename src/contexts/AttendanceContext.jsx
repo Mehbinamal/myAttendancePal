@@ -127,6 +127,11 @@ export const AttendanceProvider = ({ children }) => {
     toast.success("Attendance record deleted");
   };
 
+  // Add the missing getAttendanceForDate function
+  const getAttendanceForDate = (date) => {
+    return attendance.filter(record => record.date === date);
+  };
+
   const getAttendanceBySubject = (subjectId) => {
     return attendance.filter(record => record.subjectId === subjectId);
   };
@@ -173,7 +178,8 @@ export const AttendanceProvider = ({ children }) => {
       deleteAttendance,
       getAttendanceBySubject,
       getSubjectById,
-      getAttendanceStats
+      getAttendanceStats,
+      getAttendanceForDate // Add the missing function to the context value
     }}>
       {children}
     </AttendanceContext.Provider>
