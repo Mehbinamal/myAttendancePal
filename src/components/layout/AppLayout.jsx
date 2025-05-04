@@ -23,7 +23,7 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       <Navbar />
       <Separator />
       <main className={`container mx-auto px-4 ${isMobile ? 'mt-4' : 'mt-8'} pb-20`}>

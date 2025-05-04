@@ -30,15 +30,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-secondary/30 px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center text-center">
+    <div className="flex min-h-screen items-center justify-center bg-secondary/30 px-4 py-8">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center text-center mb-6">
           <Calendar className="h-12 w-12 text-primary mb-2" />
           <h1 className="text-3xl font-bold">AttendancePal</h1>
           <p className="text-muted-foreground">Track your class attendance seamlessly</p>
         </div>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>Enter your credentials to access your account</CardDescription>
