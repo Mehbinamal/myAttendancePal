@@ -34,16 +34,16 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validatePassword()) {
-      return;
-    }
-    
+  
+    if (!validatePassword()) return;
+  
     setIsSubmitting(true);
-    
+  
     try {
-      const success = await signup(name, email, password);
-      if (success) {
+      const { error } = await signup(name, email, password);
+      if (error) {
+        setPasswordError(error.message);
+      } else {
         navigate("/");
       }
     } finally {

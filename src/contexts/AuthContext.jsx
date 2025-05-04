@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthContext = createContext(null);
 
@@ -18,31 +19,37 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signup = async (name, email, password) => {
-    try {
-      // Simulating API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Check if user exists
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const userExists = users.some(user => user.email === email);
-      
-      if (userExists) {
-        toast.error("User with this email already exists");
+    try{
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options :{
+          data:{ full_name:name},
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
         return false;
       }
-      
-      // Create new user
-      const newUser = { id: Date.now().toString(), name, email, password };
-      localStorage.setItem("users", JSON.stringify([...users, newUser]));
-      
-      // Auto login after signup
-      const userToStore = { id: newUser.id, name, email };
-      localStorage.setItem("user", JSON.stringify(userToStore));
-      setUser(userToStore);
-      
-      toast.success("Account created successfully!");
-      return true;
-    } catch (error) {
+
+      const user = data.user;
+
+      if (user) {
+        const userToStore = {
+          id: user.id,
+          email: user.email,
+          name: name,
+        };
+        localStorage.setItem("user", JSON.stringify(userToStore));
+        setUser(userToStore);
+        toast.success("Account created successfully!");
+        return true;
+      }
+  
+      return false;
+
+    }catch (error) {
       console.error("Signup error:", error);
       toast.error("Failed to create account");
       return false;
@@ -50,38 +57,46 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    try {
-      // Simulating API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Check credentials against stored users
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const foundUser = users.find(user => user.email === email && user.password === password);
-      
-      if (!foundUser) {
-        toast.error("Invalid email or password");
-        return false;
-      }
-      
-      // Store user data (without password) in localStorage and state
-      const userToStore = { id: foundUser.id, name: foundUser.name, email: foundUser.email };
-      localStorage.setItem("user", JSON.stringify(userToStore));
-      setUser(userToStore);
-      
-      toast.success("Login successful!");
-      return true;
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Failed to log in");
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast.error(error.message);
       return false;
     }
-  };
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    toast.success("Logged out successfully");
-  };
+    const user = data.user;
+
+    if (user) {
+      const userToStore = {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata.full_name || "",
+      };
+      localStorage.setItem("user", JSON.stringify(userToStore));
+      setUser(userToStore);
+      toast.success("Login successful!");
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Login error:", error);
+    toast.error("Failed to log in");
+    return false;
+  }
+};
+
+
+const logout = async () => {
+  await supabase.auth.signOut();
+  localStorage.removeItem("user");
+  setUser(null);
+  toast.success("Logged out successfully");
+};
 
   return (
     <AuthContext.Provider value={{ user, isLoading, signup, login, logout }}>
