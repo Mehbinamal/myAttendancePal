@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Outlet, Navigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Navbar from "./Navbar";
-import { Separator } from "@/components/ui/separator";
 
 const AppLayout = () => {
   const { user, isLoading } = useAuth();
@@ -25,8 +24,7 @@ const AppLayout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Navbar />
-      <Separator />
-      <main className={`container mx-auto px-4 ${isMobile ? 'mt-4' : 'mt-8'} pb-20`}>
+      <main className={`container mx-auto px-4 py-6 flex-grow ${isMobile ? 'pb-20' : ''}`}>
         <Outlet />
       </main>
     </div>
