@@ -19,6 +19,7 @@ export type AttendanceRecord = {
   date: string;
   status: "present" | "absent";
   note?: string;
+  hours: number;
 };
 
 type AttendanceContextType = {
@@ -28,10 +29,10 @@ type AttendanceContextType = {
   addSubject: (name: string, description?: string) => Promise<void>;
   updateSubject: (id: string, name: string, description?: string) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
-  markAttendance: (subjectId: string, date: string, status: "present" | "absent", note?: string) => Promise<void>;
+  markAttendance: (subjectId: string, date: string, status: "present" | "absent", hours: number, note?: string) => Promise<void>;
   getSubjectAttendance: (subjectId: string) => AttendanceRecord[];
   getAttendanceForDate: (date: string) => AttendanceRecord[];
-  getAttendanceStats: (subjectId: string) => { present: number; absent: number; total: number; percentage: number };
+  getAttendanceStats: (subjectId: string) => { present: number; absent: number; totalHours: number; presentHours: number; percentage: number };
 };
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
@@ -85,7 +86,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Ensure status is 'present' or 'absent' - handle type casting
       const typedAttendanceRecords = attendanceData.map(record => ({
         ...record,
-        status: record.status === 'present' ? 'present' : 'absent'
+        status: record.status === 'present' ? 'present' : 'absent',
+        hours: record.hours || 1.0
       } as AttendanceRecord));
       
       setAttendanceRecords(typedAttendanceRecords);
@@ -186,7 +188,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Attendance operations
-  const markAttendance = async (subjectId: string, date: string, status: "present" | "absent", note?: string) => {
+  const markAttendance = async (subjectId: string, date: string, status: "present" | "absent", hours: number, note?: string) => {
     if (!user) return;
     
     try {
@@ -200,6 +202,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const updates = {
           status,
           note,
+          hours
         };
         
         const { error } = await supabase
@@ -225,6 +228,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           date,
           status,
           note,
+          hours
         };
         
         const { data, error } = await supabase
@@ -261,12 +265,21 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const getAttendanceStats = (subjectId: string) => {
     const subjectAttendance = getSubjectAttendance(subjectId);
-    const present = subjectAttendance.filter(record => record.status === "present").length;
-    const absent = subjectAttendance.filter(record => record.status === "absent").length;
-    const total = present + absent;
-    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+    const presentRecords = subjectAttendance.filter(record => record.status === "present");
+    const absentRecords = subjectAttendance.filter(record => record.status === "absent");
     
-    return { present, absent, total, percentage };
+    const present = presentRecords.length;
+    const absent = absentRecords.length;
+    
+    // Calculate hours
+    const presentHours = presentRecords.reduce((total, record) => total + record.hours, 0);
+    const absentHours = absentRecords.reduce((total, record) => total + record.hours, 0);
+    const totalHours = presentHours + absentHours;
+    
+    // Calculate percentage based on hours present
+    const percentage = totalHours > 0 ? Math.round((presentHours / totalHours) * 100) : 0;
+    
+    return { present, absent, totalHours, presentHours, percentage };
   };
 
   return (

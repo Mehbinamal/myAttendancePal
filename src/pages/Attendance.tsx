@@ -7,8 +7,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { format, parse, isValid, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
-import { Calendar as CalendarIcon, Check, X } from "lucide-react";
+import { Calendar as CalendarIcon, Check, X, Clock } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ const Attendance = () => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>("present");
+  const [hours, setHours] = useState<number>(1);
   const [note, setNote] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("mark");
   const [viewMonth, setViewMonth] = useState<Date>(new Date());
@@ -72,10 +74,16 @@ const Attendance = () => {
       return;
     }
     
+    if (hours <= 0) {
+      toast.error("Hours must be greater than 0");
+      return;
+    }
+    
     markAttendance(
       selectedSubject,
       format(selectedDate, "yyyy-MM-dd"),
       selectedStatus,
+      hours,
       note
     );
     
@@ -107,13 +115,15 @@ const Attendance = () => {
     record => record.date === format(selectedDate, "yyyy-MM-dd")
   );
   
-  // Set status and note from existing record when a date is selected
+  // Set status, hours, and note from existing record when a date is selected
   useEffect(() => {
     if (existingRecord) {
       setSelectedStatus(existingRecord.status);
+      setHours(existingRecord.hours);
       setNote(existingRecord.note || "");
     } else {
       setSelectedStatus("present");
+      setHours(1);
       setNote("");
     }
   }, [existingRecord, selectedDate]);
@@ -246,6 +256,22 @@ const Attendance = () => {
                             </Button>
                           </div>
                         </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="hours">Hours</Label>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="hours"
+                              type="number"
+                              step="0.5"
+                              min="0.5"
+                              value={hours}
+                              onChange={(e) => setHours(parseFloat(e.target.value) || 1)}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="note">Note (Optional)</Label>
@@ -365,7 +391,7 @@ const Attendance = () => {
                               return (
                                 <div 
                                   key={record.id}
-                                  className="flex items-start p-3 rounded-md border"
+                                  className="flex items-start p-3 rounded-md border cursor-pointer"
                                   onClick={() => {
                                     const recordDate = parse(record.date, "yyyy-MM-dd", new Date());
                                     if (isValid(recordDate)) {
@@ -390,6 +416,10 @@ const Attendance = () => {
                                   <div className="flex-1">
                                     <div className="font-medium">
                                       {format(recordDate, "PPPP")}
+                                    </div>
+                                    <div className="text-sm mt-1 flex items-center">
+                                      <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                                      <span className="text-muted-foreground">{record.hours} hour{record.hours !== 1 ? 's' : ''}</span>
                                     </div>
                                     {record.note && (
                                       <div className="text-sm mt-1 text-muted-foreground">

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useAttendance, Subject } from "@/contexts/AttendanceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Check, X } from "lucide-react";
+import { Calendar, Check, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,18 @@ const Dashboard = () => {
   const subjectsWithNoAttendanceToday = subjects.filter(
     subject => !todaysAttendance.some(record => record.subject_id === subject.id)
   );
+
+  // Calculate overall attendance statistics
+  const totalPresentHours = attendanceRecords
+    .filter(record => record.status === "present")
+    .reduce((sum, record) => sum + record.hours, 0);
+    
+  const totalAbsentHours = attendanceRecords
+    .filter(record => record.status === "absent")
+    .reduce((sum, record) => sum + record.hours, 0);
+    
+  const totalHours = totalPresentHours + totalAbsentHours;
+  const overallPercentage = totalHours > 0 ? Math.round((totalPresentHours / totalHours) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -107,8 +119,12 @@ const Dashboard = () => {
                     <span className="font-medium">{subjects.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span>Total Classes</span>
-                    <span className="font-medium">{attendanceRecords.length}</span>
+                    <span>Overall Attendance</span>
+                    <span className="font-medium">{overallPercentage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Total Class Hours</span>
+                    <span className="font-medium">{totalHours}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center">
@@ -116,7 +132,7 @@ const Dashboard = () => {
                       <span>Present</span>
                     </div>
                     <span className="font-medium">
-                      {attendanceRecords.filter(record => record.status === "present").length}
+                      {totalPresentHours.toFixed(1)} hrs
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
@@ -125,7 +141,7 @@ const Dashboard = () => {
                       <span>Absent</span>
                     </div>
                     <span className="font-medium">
-                      {attendanceRecords.filter(record => record.status === "absent").length}
+                      {totalAbsentHours.toFixed(1)} hrs
                     </span>
                   </div>
                 </div>
@@ -147,9 +163,10 @@ const Dashboard = () => {
                       <div key={subject.id} className="space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{subject.name}</span>
-                          <span className="text-sm">
-                            {stats.present}/{stats.total} ({stats.percentage}%)
-                          </span>
+                          <div className="text-sm flex items-center">
+                            <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <span>{stats.presentHours.toFixed(1)}/{stats.totalHours.toFixed(1)} hrs ({stats.percentage}%)</span>
+                          </div>
                         </div>
                         <Progress value={stats.percentage} className="h-2" />
                       </div>
