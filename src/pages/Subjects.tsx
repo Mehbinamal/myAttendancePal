@@ -176,7 +176,7 @@ const Subjects = () => {
                       <div className="flex justify-between items-center text-sm">
                         <span>Attendance</span>
                         <span className="font-medium">
-                          {stats.percentage}% ({stats.present}/{stats.total})
+                          {stats.percentage}% ({stats.present}/{stats.present + stats.absent})
                         </span>
                       </div>
                       <Progress value={stats.percentage} className="h-2" />
