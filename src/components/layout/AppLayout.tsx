@@ -5,7 +5,7 @@ import { Outlet, Navigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Navbar from "./Navbar";
 
-const AppLayout = () => {
+const AppLayout: React.FC = () => {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
 

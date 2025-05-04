@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Calendar } from "lucide-react";
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,7 +15,7 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  const isActive = (path) => {
+  const isActive = (path: string) => {
     return location.pathname === path;
   };
 

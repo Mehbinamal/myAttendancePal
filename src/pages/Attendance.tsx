@@ -5,8 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CheckCircle, XCircle } from "lucide-react";
 
-const Attendance = () => {
-  const [attendanceRecords] = useState([
+interface AttendanceRecord {
+  id: number;
+  subject: string;
+  code: string;
+  date: string;
+  status: 'present' | 'absent';
+  time: string;
+}
+
+interface AttendanceCardProps {
+  record: AttendanceRecord;
+}
+
+const Attendance: React.FC = () => {
+  const [attendanceRecords] = useState<AttendanceRecord[]>([
     {
       id: 1,
       subject: "Database Management",
@@ -132,9 +145,9 @@ const Attendance = () => {
   );
 };
 
-const AttendanceCard = ({ record }) => {
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
