@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +9,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceRecord {
-  id: number;
+  id: string;
   subject: string;
   code: string;
   date: string;
   status: 'present' | 'absent';
   time: string;
+  subject_id: string;
+  created_at: string;
+  hours: number;
+  note: string | null;
+  user_id: string;
 }
 
 const Attendance: React.FC = () => {
@@ -27,14 +33,29 @@ const Attendance: React.FC = () => {
       setIsLoading(true);
 
       try {
-        const { data, error } = await supabase
+        // Get attendance records
+        const { data: attendanceData, error: attendanceError } = await supabase
           .from("attendance")
-          .select("*")
+          .select("*, subjects(name)")
           .eq("user_id", user.id);
 
-        if (error) throw error;
+        if (attendanceError) throw attendanceError;
 
-        setAttendanceRecords(data);
+        // Transform data to match AttendanceRecord interface
+        const formattedData = attendanceData.map(record => {
+          const subject = record.subjects?.name || "Unknown Subject";
+          return {
+            ...record,
+            subject,
+            code: record.subjects?.name.substring(0, 3).toUpperCase() || "---",
+            time: new Date(record.created_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          } as AttendanceRecord;
+        });
+
+        setAttendanceRecords(formattedData);
       } catch (error) {
         console.error("Error loading attendance:", error);
         toast.error("Failed to load attendance records");
