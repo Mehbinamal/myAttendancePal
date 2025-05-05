@@ -68,8 +68,9 @@ export const AttendanceProvider = ({ children }) => {
       .select();
   
     if (error) {
+      console.error("Error adding subject:", error);
       toast.error("Failed to add subject");
-      return;
+      throw error;
     }
   
     setSubjects(prev => [...prev, data[0]]);
@@ -78,23 +79,23 @@ export const AttendanceProvider = ({ children }) => {
   };
 
   const updateSubject = async (id, updates) => {
-    const { data,error} = await supabase
-    .from("subjects")
-    .update({...updates, updated_at: new Date().toISOString()})
-    .eq("id",id)
-    .eq("user_id",user.id)
-    .select();
+    const { data, error } = await supabase
+      .from("subjects")
+      .update({...updates, updated_at: new Date().toISOString()})
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select();
   
-  if (error) {
-    console.error("Error updating subject:", error);
-    toast.error("Failed to update subject");
-    return;
-  }
+    if (error) {
+      console.error("Error updating subject:", error);
+      toast.error("Failed to update subject");
+      return;
+    }
   
-  setSubjects(prev =>
-    prev.map(subject => (subject.id === id ? data[0] : subject))
-  );
-  toast.success("Subject updated successfully");
+    setSubjects(prev =>
+      prev.map(subject => (subject.id === id ? data[0] : subject))
+    );
+    toast.success("Subject updated successfully");
   };
 
   const deleteSubject = async (id) => {
@@ -126,7 +127,7 @@ export const AttendanceProvider = ({ children }) => {
   
     // Update local state
     setSubjects(prev => prev.filter(subject => subject.id !== id));
-    setAttendance(prev => prev.filter(record => record.subjectId !== id));
+    setAttendance(prev => prev.filter(record => record.subject_id !== id));
   
     toast.success("Subject and related attendance deleted successfully");
   };
@@ -136,16 +137,17 @@ export const AttendanceProvider = ({ children }) => {
     const newRecord = {
       ...record,
       user_id: user.id,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
-    const { data,error} = await supabase
+    const { data, error } = await supabase
       .from("attendance")
       .insert([newRecord])
       .select();
 
     if (error){
+      console.error("Error adding attendance:", error);
       toast.error("Failed to add attendance");
-      return;
+      throw error;
     }
     setAttendance(prev => [...prev, data[0]]);
     toast.success("Attendance recorded successfully");
@@ -172,22 +174,22 @@ export const AttendanceProvider = ({ children }) => {
     toast.success("Attendance updated successfully");
   };
 
-const deleteAttendance = async (id) => {
-  const { error } = await supabase
-    .from("attendance")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const deleteAttendance = async (id) => {
+    const { error } = await supabase
+      .from("attendance")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
 
-  if (error) {
-    console.error("Error deleting attendance:", error);
-    toast.error("Failed to delete attendance");
-    return;
-  }
+    if (error) {
+      console.error("Error deleting attendance:", error);
+      toast.error("Failed to delete attendance");
+      return;
+    }
 
-  setAttendance(prev => prev.filter(record => record.id !== id));
-  toast.success("Attendance record deleted");
-};
+    setAttendance(prev => prev.filter(record => record.id !== id));
+    toast.success("Attendance record deleted");
+  };
 
   // Add the missing getAttendanceForDate function
   const getAttendanceForDate = (date) => {
@@ -195,7 +197,7 @@ const deleteAttendance = async (id) => {
   };
 
   const getAttendanceBySubject = (subjectId) => {
-    return attendance.filter(record => record.subjectId === subjectId);
+    return attendance.filter(record => record.subject_id === subjectId);
   };
 
   const getSubjectById = (id) => {
@@ -241,7 +243,7 @@ const deleteAttendance = async (id) => {
       getAttendanceBySubject,
       getSubjectById,
       getAttendanceStats,
-      getAttendanceForDate // Add the missing function to the context value
+      getAttendanceForDate
     }}>
       {children}
     </AttendanceContext.Provider>

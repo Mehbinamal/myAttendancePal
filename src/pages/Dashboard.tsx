@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, CheckCircle } from "lucide-react";
@@ -16,27 +16,28 @@ interface ClassInfo {
 const Dashboard: React.FC = () => {
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
   const { subjects, getAttendanceStats } = useAttendance();
+  const [todayClasses, setTodayClasses] = useState<ClassInfo[]>([]);
   
-  // This is mock data for today's schedule
-  const todayClasses: ClassInfo[] = [
-    {
-      subject: "Mathematics",
-      start_time: "09:00",
-      end_time: "10:30",
-      day: "Monday",
-    },
-    {
-      subject: "Physics",
-      start_time: "11:00",
-      end_time: "12:30",
-      day: "Monday",
-    },
-  ];
-
   const stats = getAttendanceStats();
   const today = new Date();
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const todayName = dayNames[today.getDay()];
+  
+  // Extract schedule information from subjects to build today's classes
+  useEffect(() => {
+    // This just filters subjects with schedules that match today
+    // In a real application, this would parse the schedule string properly
+    const classesForToday = subjects
+      .filter(subject => subject.schedule && subject.schedule.toLowerCase().includes(todayName.toLowerCase()))
+      .map(subject => ({
+        subject: subject.name,
+        start_time: "09:00", // Default time since we don't have actual time parsing
+        end_time: "10:30",  // Default time since we don't have actual time parsing
+        day: todayName
+      }));
+    
+    setTodayClasses(classesForToday);
+  }, [subjects, todayName]);
   
   return (
     <div className="space-y-6">
@@ -102,29 +103,26 @@ const Dashboard: React.FC = () => {
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Today's Schedule</h2>
-        {todayClasses.filter(c => c.day === todayName).length > 0 ? (
+        {todayClasses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {todayClasses
-              .filter(c => c.day === todayName)
-              .map((classItem, index) => (
-                <Card key={index} className="flex justify-between items-center">
-                  <CardContent className="p-4 flex-1">
-                    <h3 className="font-medium">{classItem.subject}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {classItem.start_time} - {classItem.end_time}
-                    </p>
-                  </CardContent>
-                  <CardFooter className="p-4">
-                    <Button 
-                      size="sm" 
-                      onClick={() => setMarkAttendanceOpen(true)}
-                    >
-                      Mark
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-          }
+            {todayClasses.map((classItem, index) => (
+              <Card key={index} className="flex justify-between items-center">
+                <CardContent className="p-4 flex-1">
+                  <h3 className="font-medium">{classItem.subject}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {classItem.start_time} - {classItem.end_time}
+                  </p>
+                </CardContent>
+                <CardFooter className="p-4">
+                  <Button 
+                    size="sm" 
+                    onClick={() => setMarkAttendanceOpen(true)}
+                  >
+                    Mark
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         ) : (
           <Card>
