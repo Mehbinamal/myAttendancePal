@@ -1,9 +1,11 @@
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CheckCircle, XCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceRecord {
   id: number;
@@ -14,144 +16,42 @@ interface AttendanceRecord {
   time: string;
 }
 
-interface AttendanceCardProps {
-  record: AttendanceRecord;
-}
-
 const Attendance: React.FC = () => {
-  const [attendanceRecords] = useState<AttendanceRecord[]>([
-    {
-      id: 1,
-      subject: "Database Management",
-      code: "CS301",
-      date: "2025-05-03",
-      status: "present",
-      time: "10:00 AM - 11:30 AM"
-    },
-    {
-      id: 2,
-      subject: "Web Development",
-      code: "CS302",
-      date: "2025-05-03",
-      status: "present",
-      time: "1:00 PM - 2:30 PM"
-    },
-    {
-      id: 3,
-      subject: "Data Structures",
-      code: "CS201",
-      date: "2025-05-02",
-      status: "present",
-      time: "9:30 AM - 11:00 AM"
-    },
-    {
-      id: 4,
-      subject: "Algorithm Design",
-      code: "CS202",
-      date: "2025-05-02",
-      status: "absent",
-      time: "3:00 PM - 4:30 PM"
-    },
-    {
-      id: 5,
-      subject: "Database Management",
-      code: "CS301",
-      date: "2025-05-01",
-      status: "present",
-      time: "10:00 AM - 11:30 AM"
-    },
-  ]);
+  const { user } = useAuth();
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const getTodayRecords = () => {
-    const today = new Date().toISOString().split('T')[0];
-    return attendanceRecords.filter(record => record.date === today);
-  };
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      setIsLoading(true);
 
-  const getYesterdayRecords = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    return attendanceRecords.filter(record => record.date === yesterdayStr);
-  };
+      try {
+        const { data, error } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("user_id", user.id);
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Attendance Records</h1>
+        if (error) throw error;
 
-      <Tabs defaultValue="all">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All Records</TabsTrigger>
-          <TabsTrigger value="present">Present</TabsTrigger>
-          <TabsTrigger value="absent">Absent</TabsTrigger>
-        </TabsList>
+        setAttendanceRecords(data);
+      } catch (error) {
+        console.error("Error loading attendance:", error);
+        toast.error("Failed to load attendance records");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-        <TabsContent value="all" className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="font-medium text-muted-foreground">Today</h2>
-            <div className="space-y-3">
-              {attendanceRecords
-                .filter(record => record.date === "2025-05-03")
-                .map(record => (
-                  <AttendanceCard key={record.id} record={record} />
-                ))
-              }
-            </div>
-          </div>
+    loadData();
+  }, [user]);
 
-          <div className="space-y-2">
-            <h2 className="font-medium text-muted-foreground">Yesterday</h2>
-            <div className="space-y-3">
-              {attendanceRecords
-                .filter(record => record.date === "2025-05-02")
-                .map(record => (
-                  <AttendanceCard key={record.id} record={record} />
-                ))
-              }
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="font-medium text-muted-foreground">Older</h2>
-            <div className="space-y-3">
-              {attendanceRecords
-                .filter(record => record.date === "2025-05-01")
-                .map(record => (
-                  <AttendanceCard key={record.id} record={record} />
-                ))
-              }
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="present" className="space-y-3">
-          {attendanceRecords
-            .filter(record => record.status === "present")
-            .map(record => (
-              <AttendanceCard key={record.id} record={record} />
-            ))
-          }
-        </TabsContent>
-
-        <TabsContent value="absent" className="space-y-3">
-          {attendanceRecords
-            .filter(record => record.status === "absent")
-            .map(record => (
-              <AttendanceCard key={record.id} record={record} />
-            ))
-          }
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
-  return (
+  const AttendanceCard = ({ record }: { record: AttendanceRecord }) => (
     <Card>
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
@@ -162,12 +62,12 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
               <span>{formatDate(record.date)} | {record.time}</span>
             </div>
           </div>
-          <div className="flex items-center">
-            <span 
+          <div>
+            <span
               className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm ${
-                record.status === "present" 
-                ? "bg-green-100 text-green-800" 
-                : "bg-red-100 text-red-800"
+                record.status === "present"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
               }`}
             >
               {record.status === "present" ? (
@@ -184,6 +84,69 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
         </div>
       </CardContent>
     </Card>
+  );
+
+  const filterRecords = (status?: "present" | "absent") =>
+    status ? attendanceRecords.filter(r => r.status === status) : attendanceRecords;
+
+  const getDateStr = (offset: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - offset);
+    return date.toISOString().split("T")[0];
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Attendance Records</h1>
+
+      <Tabs defaultValue="all">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All Records</TabsTrigger>
+          <TabsTrigger value="present">Present</TabsTrigger>
+          <TabsTrigger value="absent">Absent</TabsTrigger>
+        </TabsList>
+
+        {/* All Records */}
+        <TabsContent value="all" className="space-y-6">
+          {["Today", "Yesterday", "Older"].map((label, i) => {
+            const filterDate = getDateStr(i);
+            const filtered = attendanceRecords.filter(r => {
+              if (label === "Older") return r.date < getDateStr(2);
+              return r.date === filterDate;
+            });
+
+            return (
+              <div key={label} className="space-y-2">
+                <h2 className="font-medium text-muted-foreground">{label}</h2>
+                <div className="space-y-3">
+                  {filtered.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No records</p>
+                  ) : (
+                    filtered.map((record) => (
+                      <AttendanceCard key={record.id} record={record} />
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </TabsContent>
+
+        {/* Present */}
+        <TabsContent value="present" className="space-y-3">
+          {filterRecords("present").map((record) => (
+            <AttendanceCard key={record.id} record={record} />
+          ))}
+        </TabsContent>
+
+        {/* Absent */}
+        <TabsContent value="absent" className="space-y-3">
+          {filterRecords("absent").map((record) => (
+            <AttendanceCard key={record.id} record={record} />
+          ))}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

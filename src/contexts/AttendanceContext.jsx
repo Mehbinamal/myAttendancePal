@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const AttendanceContext = createContext(null);
 
@@ -23,24 +24,27 @@ export const AttendanceProvider = ({ children }) => {
     }
   }, [user]);
 
-  // Load data from localStorage
-  const loadData = () => {
+  const loadData = async () => {
+    if (!user) return;
+  
+    setIsLoading(true);
     try {
-      if (!user) return;
-      
-      setIsLoading(true);
-      
-      // Load subjects
-      const storedSubjects = localStorage.getItem(`subjects_${user.id}`);
-      if (storedSubjects) {
-        setSubjects(JSON.parse(storedSubjects));
-      }
-      
-      // Load attendance records
-      const storedAttendance = localStorage.getItem(`attendance_${user.id}`);
-      if (storedAttendance) {
-        setAttendance(JSON.parse(storedAttendance));
-      }
+      const { data: subjectData, error: subjectError } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("user_id", user.id);
+  
+      if (subjectError) throw new Error("Error loading subjects: " + subjectError.message);
+  
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from("attendance")
+        .select("*")
+        .eq("user_id", user.id);
+  
+      if (attendanceError) throw new Error("Error loading attendance: " + attendanceError.message);
+  
+      setSubjects(subjectData ?? []);
+      setAttendance(attendanceData ?? []);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load your data");
@@ -49,83 +53,141 @@ export const AttendanceProvider = ({ children }) => {
     }
   };
 
-  // Save data to localStorage
-  const saveData = (type, data) => {
-    if (!user) return;
-    
-    try {
-      if (type === 'subjects') {
-        localStorage.setItem(`subjects_${user.id}`, JSON.stringify(data));
-        setSubjects(data);
-      } else if (type === 'attendance') {
-        localStorage.setItem(`attendance_${user.id}`, JSON.stringify(data));
-        setAttendance(data);
-      }
-    } catch (error) {
-      console.error(`Error saving ${type}:`, error);
-      toast.error(`Failed to save ${type}`);
-    }
-  };
 
   // Subject CRUD operations
-  const addSubject = (subject) => {
+  const addSubject = async (subject) => {
     const newSubject = {
-      id: Date.now().toString(),
       ...subject,
-      createdAt: new Date().toISOString()
+      user_id: user.id,
+      created_at: new Date().toISOString()
     };
-    const updatedSubjects = [...subjects, newSubject];
-    saveData('subjects', updatedSubjects);
+  
+    const { data, error } = await supabase
+      .from("subjects")
+      .insert([newSubject])
+      .select();
+  
+    if (error) {
+      toast.error("Failed to add subject");
+      return;
+    }
+  
+    setSubjects(prev => [...prev, data[0]]);
     toast.success("Subject added successfully");
-    return newSubject;
+    return data[0];
   };
 
-  const updateSubject = (id, updates) => {
-    const updatedSubjects = subjects.map(subject => 
-      subject.id === id ? { ...subject, ...updates, updatedAt: new Date().toISOString() } : subject
-    );
-    saveData('subjects', updatedSubjects);
-    toast.success("Subject updated successfully");
+  const updateSubject = async (id, updates) => {
+    const { data,error} = await supabase
+    .from("subjects")
+    .update({...updates, updated_at: new Date().toISOString()})
+    .eq("id",id)
+    .eq("user_id",user.id)
+    .select();
+  
+  if (error) {
+    console.error("Error updating subject:", error);
+    toast.error("Failed to update subject");
+    return;
+  }
+  
+  setSubjects(prev =>
+    prev.map(subject => (subject.id === id ? data[0] : subject))
+  );
+  toast.success("Subject updated successfully");
   };
 
-  const deleteSubject = (id) => {
-    // Delete subject
-    const updatedSubjects = subjects.filter(subject => subject.id !== id);
-    saveData('subjects', updatedSubjects);
-    
-    // Also delete related attendance records
-    const updatedAttendance = attendance.filter(record => record.subjectId !== id);
-    saveData('attendance', updatedAttendance);
-    
-    toast.success("Subject deleted successfully");
+  const deleteSubject = async (id) => {
+    // Delete the subject
+    const { error: deleteSubjectError } = await supabase
+      .from("subjects")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+  
+    if (deleteSubjectError) {
+      console.error("Error deleting subject:", deleteSubjectError);
+      toast.error("Failed to delete subject");
+      return;
+    }
+  
+    // Delete related attendance records
+    const { error: deleteAttendanceError } = await supabase
+      .from("attendance")
+      .delete()
+      .eq("subject_id", id)
+      .eq("user_id", user.id);
+  
+    if (deleteAttendanceError) {
+      console.error("Error deleting related attendance:", deleteAttendanceError);
+      toast.error("Failed to delete attendance for subject");
+      return;
+    }
+  
+    // Update local state
+    setSubjects(prev => prev.filter(subject => subject.id !== id));
+    setAttendance(prev => prev.filter(record => record.subjectId !== id));
+  
+    toast.success("Subject and related attendance deleted successfully");
   };
 
   // Attendance operations
-  const addAttendance = (record) => {
+  const addAttendance = async (record) => {
     const newRecord = {
-      id: Date.now().toString(),
       ...record,
+      user_id: user.id,
       createdAt: new Date().toISOString()
     };
-    const updatedAttendance = [...attendance, newRecord];
-    saveData('attendance', updatedAttendance);
+    const { data,error} = await supabase
+      .from("attendance")
+      .insert([newRecord])
+      .select();
+
+    if (error){
+      toast.error("Failed to add attendance");
+      return;
+    }
+    setAttendance(prev => [...prev, data[0]]);
     toast.success("Attendance recorded successfully");
-    return newRecord;
+    return data[0];
   };
 
-  const updateAttendance = (id, updates) => {
-    const updatedAttendance = attendance.map(record => 
-      record.id === id ? { ...record, ...updates, updatedAt: new Date().toISOString() } : record
+  const updateAttendance = async (id, updates) => {
+    const { data, error } = await supabase
+      .from("attendance")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select();
+  
+    if (error) {
+      console.error("Error updating attendance:", error);
+      toast.error("Failed to update attendance");
+      return;
+    }
+  
+    setAttendance(prev =>
+      prev.map(record => (record.id === id ? data[0] : record))
     );
-    saveData('attendance', updatedAttendance);
     toast.success("Attendance updated successfully");
   };
 
-  const deleteAttendance = (id) => {
-    const updatedAttendance = attendance.filter(record => record.id !== id);
-    saveData('attendance', updatedAttendance);
-    toast.success("Attendance record deleted");
-  };
+const deleteAttendance = async (id) => {
+  const { error } = await supabase
+    .from("attendance")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Error deleting attendance:", error);
+    toast.error("Failed to delete attendance");
+    return;
+  }
+
+  setAttendance(prev => prev.filter(record => record.id !== id));
+  toast.success("Attendance record deleted");
+};
 
   // Add the missing getAttendanceForDate function
   const getAttendanceForDate = (date) => {

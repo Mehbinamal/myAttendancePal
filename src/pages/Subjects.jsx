@@ -1,40 +1,38 @@
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Subjects = () => {
-  const [subjects] = useState([
-    {
-      id: 1,
-      name: "Database Management",
-      code: "CS301",
-      schedule: "Monday, Wednesday 10:00 AM - 11:30 AM",
-      attendance: { present: 12, absent: 2 }
-    },
-    {
-      id: 2,
-      name: "Web Development",
-      code: "CS302",
-      schedule: "Tuesday, Thursday 1:00 PM - 2:30 PM",
-      attendance: { present: 10, absent: 3 }
-    },
-    {
-      id: 3,
-      name: "Data Structures",
-      code: "CS201",
-      schedule: "Monday, Wednesday 9:30 AM - 11:00 AM",
-      attendance: { present: 14, absent: 0 }
-    },
-    {
-      id: 4,
-      name: "Algorithm Design",
-      code: "CS202",
-      schedule: "Tuesday, Friday 3:00 PM - 4:30 PM",
-      attendance: { present: 8, absent: 4 }
-    }
-  ]);
+  const [subjects, setSubjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (!user) return;
+
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) {
+        toast.error("Failed to fetch subjects.");
+        console.error(error);
+      } else {
+        setSubjects(data);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchSubjects();
+  }, [user]);
 
   const calculateAttendancePercentage = (present, absent) => {
     const total = present + absent;
@@ -52,55 +50,57 @@ const Subjects = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {subjects.map((subject) => {
-          const attendancePercentage = calculateAttendancePercentage(subject.attendance.present, subject.attendance.absent);
-          
-          return (
-            <Card key={subject.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{subject.name}</CardTitle>
-                    <CardDescription className="mt-1">{subject.code}</CardDescription>
-                  </div>
-                  <div className={`text-sm font-medium px-2 py-1 rounded-md ${
-                    attendancePercentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}>
-                    {attendancePercentage}% Attendance
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">
-                    {subject.schedule}
-                  </p>
-                  <div className="flex items-center gap-4">
+      {isLoading ? (
+        <p>Loading subjects...</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {subjects.map((subject) => {
+            const present = subject.present_count || 0;
+            const absent = subject.absent_count || 0;
+            const percentage = calculateAttendancePercentage(present, absent);
+
+            return (
+              <Card key={subject.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <span className="font-medium text-green-600">{subject.attendance.present}</span>{" "}
+                      <CardTitle>{subject.name}</CardTitle>
+                      <CardDescription className="mt-1">{subject.code}</CardDescription>
+                    </div>
+                    <div className={`text-sm font-medium px-2 py-1 rounded-md ${
+                      percentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}>
+                      {percentage}% Attendance
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-2">{subject.schedule}</p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-green-600">{present}</span>{" "}
                       <span className="text-muted-foreground text-xs">Present</span>
                     </div>
                     <div>
-                      <span className="font-medium text-red-600">{subject.attendance.absent}</span>{" "}
+                      <span className="font-medium text-red-600">{absent}</span>{" "}
                       <span className="text-muted-foreground text-xs">Absent</span>
                     </div>
                     <div>
-                      <span className="font-medium">{subject.attendance.present + subject.attendance.absent}</span>{" "}
+                      <span className="font-medium">{present + absent}</span>{" "}
                       <span className="text-muted-foreground text-xs">Total</span>
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  <div className="flex justify-end mt-4">
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
