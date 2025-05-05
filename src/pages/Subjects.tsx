@@ -6,18 +6,6 @@ import { PlusCircle } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { AddSubjectDialog } from "@/components/AddSubjectDialog";
 
-interface Subject {
-  id: string;
-  name: string;
-  code?: string;
-  schedule?: string;
-  present_count?: number;
-  absent_count?: number;
-  user_id: string;
-  created_at: string;
-  description?: string | null;
-}
-
 const Subjects: React.FC = () => {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const { subjects, isLoading } = useAttendance();

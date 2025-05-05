@@ -40,6 +40,7 @@ export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) 
 
   const onSubmit = async (data: FormValues) => {
     try {
+      console.log("Submitting subject data:", data);
       await addSubject({
         name: data.name,
         code: data.code,
