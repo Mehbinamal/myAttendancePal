@@ -1,11 +1,10 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useAttendance } from "@/contexts/AttendanceContext";
+import { AddSubjectDialog } from "@/components/AddSubjectDialog";
 
 interface Subject {
   id: string;
@@ -20,32 +19,8 @@ interface Subject {
 }
 
 const Subjects: React.FC = () => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      if (!user) return;
-
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (error) {
-        toast.error("Failed to fetch subjects.");
-        console.error(error);
-      } else {
-        setSubjects(data);
-      }
-
-      setIsLoading(false);
-    };
-
-    fetchSubjects();
-  }, [user]);
+  const [addSubjectOpen, setAddSubjectOpen] = useState(false);
+  const { subjects, isLoading } = useAttendance();
 
   const calculateAttendancePercentage = (present: number, absent: number) => {
     const total = present + absent;
@@ -57,63 +32,84 @@ const Subjects: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">My Subjects</h1>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setAddSubjectOpen(true)}
+        >
           <PlusCircle className="h-4 w-4" />
           Add Subject
         </Button>
       </div>
 
       {isLoading ? (
-        <p>Loading subjects...</p>
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map((subject) => {
-            const present = subject.present_count || 0;
-            const absent = subject.absent_count || 0;
-            const percentage = calculateAttendancePercentage(present, absent);
+          {subjects.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground mb-4">You don't have any subjects yet.</p>
+              <Button 
+                variant="outline" 
+                onClick={() => setAddSubjectOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Add your first subject
+              </Button>
+            </div>
+          ) : (
+            subjects.map((subject) => {
+              const present = subject.present_count || 0;
+              const absent = subject.absent_count || 0;
+              const percentage = calculateAttendancePercentage(present, absent);
 
-            return (
-              <Card key={subject.id} className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{subject.name}</CardTitle>
-                      <CardDescription className="mt-1">{subject.code}</CardDescription>
+              return (
+                <Card key={subject.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{subject.name}</CardTitle>
+                        <CardDescription className="mt-1">{subject.code}</CardDescription>
+                      </div>
+                      <div className={`text-sm font-medium px-2 py-1 rounded-md ${
+                        percentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      }`}>
+                        {percentage}% Attendance
+                      </div>
                     </div>
-                    <div className={`text-sm font-medium px-2 py-1 rounded-md ${
-                      percentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                    }`}>
-                      {percentage}% Attendance
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-2">{subject.schedule}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-green-600">{present}</span>{" "}
+                        <span className="text-muted-foreground text-xs">Present</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-red-600">{absent}</span>{" "}
+                        <span className="text-muted-foreground text-xs">Absent</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">{present + absent}</span>{" "}
+                        <span className="text-muted-foreground text-xs">Total</span>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-2">{subject.schedule}</p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-green-600">{present}</span>{" "}
-                      <span className="text-muted-foreground text-xs">Present</span>
+                    <div className="flex justify-end mt-4">
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
                     </div>
-                    <div>
-                      <span className="font-medium text-red-600">{absent}</span>{" "}
-                      <span className="text-muted-foreground text-xs">Absent</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">{present + absent}</span>{" "}
-                      <span className="text-muted-foreground text-xs">Total</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-4">
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
       )}
+
+      <AddSubjectDialog open={addSubjectOpen} onOpenChange={setAddSubjectOpen} />
     </div>
   );
 };

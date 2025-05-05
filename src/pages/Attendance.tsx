@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CheckCircle, XCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { MarkAttendanceDialog } from "@/components/MarkAttendanceDialog";
 
 interface AttendanceRecord {
   id: string;
@@ -23,49 +23,31 @@ interface AttendanceRecord {
 }
 
 const Attendance: React.FC = () => {
-  const { user } = useAuth();
+  const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
+  const { attendance, subjects, isLoading } = useAttendance();
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      setIsLoading(true);
+    if (attendance.length > 0 && subjects.length > 0) {
+      // Transform data to match AttendanceRecord interface
+      const formattedData = attendance.map(record => {
+        const subject = subjects.find(s => s.id === record.subject_id);
+        return {
+          ...record,
+          subject: subject?.name || "Unknown Subject",
+          code: subject?.code || "---",
+          time: new Date(record.created_at).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        } as AttendanceRecord;
+      });
 
-      try {
-        // Get attendance records
-        const { data: attendanceData, error: attendanceError } = await supabase
-          .from("attendance")
-          .select("*, subjects(name)")
-          .eq("user_id", user.id);
-
-        if (attendanceError) throw attendanceError;
-
-        // Transform data to match AttendanceRecord interface
-        const formattedData = attendanceData.map(record => {
-          const subject = record.subjects?.name || "Unknown Subject";
-          return {
-            ...record,
-            subject,
-            code: record.subjects?.name.substring(0, 3).toUpperCase() || "---",
-            time: new Date(record.created_at).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit'
-            })
-          } as AttendanceRecord;
-        });
-
-        setAttendanceRecords(formattedData);
-      } catch (error) {
-        console.error("Error loading attendance:", error);
-        toast.error("Failed to load attendance records");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [user]);
+      setAttendanceRecords(formattedData);
+    } else {
+      setAttendanceRecords([]);
+    }
+  }, [attendance, subjects]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -118,7 +100,16 @@ const Attendance: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Attendance Records</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Attendance Records</h1>
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setMarkAttendanceOpen(true)}
+        >
+          <CheckCircle className="h-4 w-4" />
+          Mark Attendance
+        </Button>
+      </div>
 
       <Tabs defaultValue="all">
         <TabsList className="mb-4">
@@ -155,18 +146,28 @@ const Attendance: React.FC = () => {
 
         {/* Present */}
         <TabsContent value="present" className="space-y-3">
-          {filterRecords("present").map((record) => (
-            <AttendanceCard key={record.id} record={record} />
-          ))}
+          {filterRecords("present").length > 0 ? (
+            filterRecords("present").map((record) => (
+              <AttendanceCard key={record.id} record={record} />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No present records found.</p>
+          )}
         </TabsContent>
 
         {/* Absent */}
         <TabsContent value="absent" className="space-y-3">
-          {filterRecords("absent").map((record) => (
-            <AttendanceCard key={record.id} record={record} />
-          ))}
+          {filterRecords("absent").length > 0 ? (
+            filterRecords("absent").map((record) => (
+              <AttendanceCard key={record.id} record={record} />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No absent records found.</p>
+          )}
         </TabsContent>
       </Tabs>
+
+      <MarkAttendanceDialog open={markAttendanceOpen} onOpenChange={setMarkAttendanceOpen} />
     </div>
   );
 };
