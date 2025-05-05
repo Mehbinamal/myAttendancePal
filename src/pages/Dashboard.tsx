@@ -15,8 +15,10 @@ interface ClassInfo {
 
 const Dashboard: React.FC = () => {
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
-  const { subjects, getAttendanceStats } = useAttendance();
+  const { subjects, getAttendanceStats, isLoading } = useAttendance();
   const [todayClasses, setTodayClasses] = useState<ClassInfo[]>([]);
+  
+  console.log("Rendering Dashboard component", { subjectsLength: subjects?.length, isLoading });
   
   const stats = getAttendanceStats();
   const today = new Date();
@@ -25,6 +27,9 @@ const Dashboard: React.FC = () => {
   
   // Extract schedule information from subjects to build today's classes
   useEffect(() => {
+    console.log("Dashboard useEffect running", { subjects });
+    if (!subjects) return;
+    
     // This just filters subjects with schedules that match today
     // In a real application, this would parse the schedule string properly
     const classesForToday = subjects
@@ -36,8 +41,17 @@ const Dashboard: React.FC = () => {
         day: todayName
       }));
     
+    console.log("Today's classes:", classesForToday);
     setTodayClasses(classesForToday);
   }, [subjects, todayName]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -79,7 +93,7 @@ const Dashboard: React.FC = () => {
             <CardDescription>Total registered subjects</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-bold">
-            {subjects.length}
+            {subjects ? subjects.length : 0}
           </CardContent>
         </Card>
         
@@ -103,7 +117,7 @@ const Dashboard: React.FC = () => {
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Today's Schedule</h2>
-        {todayClasses.length > 0 ? (
+        {todayClasses && todayClasses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {todayClasses.map((classItem, index) => (
               <Card key={index} className="flex justify-between items-center">
