@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
@@ -8,7 +8,15 @@ import { AddSubjectDialog } from "@/components/AddSubjectDialog";
 
 const Subjects: React.FC = () => {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
-  const { subjects, isLoading } = useAttendance();
+  const { subjects, isLoading, loadData } = useAttendance();
+
+  // Ensure subjects are loaded when the component mounts
+  useEffect(() => {
+    console.log("Subjects component mounted, loading data");
+    loadData();
+  }, [loadData]);
+
+  console.log("Rendering Subjects component with:", { subjects, isLoading });
 
   const calculateAttendancePercentage = (present: number, absent: number) => {
     const total = present + absent;
@@ -35,7 +43,7 @@ const Subjects: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.length === 0 ? (
+          {!subjects || subjects.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground mb-4">You don't have any subjects yet.</p>
               <Button 

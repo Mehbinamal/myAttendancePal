@@ -1,5 +1,4 @@
-
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,35 +14,75 @@ export const AttendanceProvider = ({ children }) => {
   // Load data when user changes
   useEffect(() => {
     if (user) {
+      console.log("User detected in AttendanceContext, loading data", user);
       loadData();
     } else {
       // Reset data when user logs out
+      console.log("No user in AttendanceContext, resetting data");
       setSubjects([]);
       setAttendance([]);
       setIsLoading(false);
     }
   }, [user]);
 
-  const loadData = async () => {
-    if (!user) return;
+  const loadData = useCallback(async () => {
+    if (!user) {
+      console.log("No user available, skipping data load");
+      setIsLoading(false);
+      return;
+    }
   
+    console.log("Loading data for user:", user.id);
     setIsLoading(true);
     try {
+      // Load subjects
       const { data: subjectData, error: subjectError } = await supabase
         .from("subjects")
         .select("*")
         .eq("user_id", user.id);
   
-      if (subjectError) throw new Error("Error loading subjects: " + subjectError.message);
+      if (subjectError) {
+        console.error("Error loading subjects:", subjectError);
+        throw new Error("Error loading subjects: " + subjectError.message);
+      }
+      
+      console.log("Loaded subjects:", subjectData);
   
+      // Load attendance
       const { data: attendanceData, error: attendanceError } = await supabase
         .from("attendance")
         .select("*")
         .eq("user_id", user.id);
   
-      if (attendanceError) throw new Error("Error loading attendance: " + attendanceError.message);
+      if (attendanceError) {
+        console.error("Error loading attendance:", attendanceError);
+        throw new Error("Error loading attendance: " + attendanceError.message);
+      }
   
-      setSubjects(subjectData ?? []);
+      console.log("Loaded attendance:", attendanceData);
+      
+      // Calculate attendance counts for each subject
+      const subjectsWithCounts = subjectData.map(subject => {
+        const subjectAttendance = attendanceData.filter(record => 
+          record.subject_id === subject.id
+        );
+        
+        const present_count = subjectAttendance.filter(record => 
+          record.status === 'present'
+        ).length;
+        
+        const absent_count = subjectAttendance.filter(record => 
+          record.status === 'absent'
+        ).length;
+        
+        return {
+          ...subject,
+          present_count,
+          absent_count
+        };
+      });
+  
+      setSubjects(subjectsWithCounts);
       setAttendance(attendanceData ?? []);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -51,11 +90,17 @@ export const AttendanceProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
+  }, [user]);
 
   // Subject CRUD operations
   const addSubject = async (subject) => {
+    console.log("Adding subject:", subject, "for user:", user?.id);
+    if (!user) {
+      console.error("No user available to add subject");
+      toast.error("You must be logged in to add a subject");
+      return null;
+    }
+
     const newSubject = {
       ...subject,
       user_id: user.id,
@@ -72,10 +117,17 @@ export const AttendanceProvider = ({ children }) => {
       toast.error("Failed to add subject");
       throw error;
     }
+    
+    console.log("Subject added successfully:", data[0]);
+    const subjectWithCounts = {
+      ...data[0],
+      present_count: 0,
+      absent_count: 0
+    };
   
-    setSubjects(prev => [...prev, data[0]]);
+    setSubjects(prev => [...prev, subjectWithCounts]);
     toast.success("Subject added successfully");
-    return data[0];
+    return subjectWithCounts;
   };
 
   const updateSubject = async (id, updates) => {
@@ -234,6 +286,7 @@ export const AttendanceProvider = ({ children }) => {
       subjects,
       attendance,
       isLoading,
+      loadData,
       addSubject,
       updateSubject,
       deleteSubject,

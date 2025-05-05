@@ -48,6 +48,7 @@ export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) 
         description: data.description || "",
       });
       
+      console.log("Subject added successfully, resetting form");
       form.reset();
       onOpenChange(false);
       toast.success("Subject added successfully!");
@@ -58,7 +59,13 @@ export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpenState) => {
+      console.log("Dialog open state changing to:", newOpenState);
+      if (!newOpenState) {
+        form.reset();
+      }
+      onOpenChange(newOpenState);
+    }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Subject</DialogTitle>
