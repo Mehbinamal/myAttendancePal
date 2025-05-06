@@ -281,7 +281,7 @@ export const AttendanceProvider = ({ children }) => {
 
   const getAttendanceStats = () => {
     const stats = {
-      total: attendance.length,
+      total: attendance.length - attendance.filter(record => record.status === 'not_taken').length,
       present: attendance.filter(record => record.status === 'present').length,
       absent: attendance.filter(record => record.status === 'absent').length,
       not_taken: attendance.filter(record => record.status === 'not_taken').length,
@@ -294,7 +294,7 @@ export const AttendanceProvider = ({ children }) => {
       const present = subjectAttendance.filter(record => record.status === 'present').length;
       const absent = subjectAttendance.filter(record => record.status === 'absent').length;
       const not_taken = subjectAttendance.filter(record => record.status === 'not_taken').length;
-      const total = subjectAttendance.length;
+      const total = subjectAttendance.length - not_taken;
       const attendedTotal = total - not_taken; // Classes that were actually held
       
       stats.subjects[subject.id] = {
