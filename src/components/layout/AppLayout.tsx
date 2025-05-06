@@ -8,7 +8,7 @@ import { useAttendance } from "@/contexts/AttendanceContext";
 
 const AppLayout: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const { loadData } = useAttendance();
+  const { loadData, isLoading: attendanceLoading } = useAttendance();
   const isMobile = useIsMobile();
 
   // Load attendance data when the layout mounts and user is authenticated
@@ -20,7 +20,7 @@ const AppLayout: React.FC = () => {
     }
   }, [user, loadData]);
 
-  if (authLoading) {
+  if (authLoading || attendanceLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

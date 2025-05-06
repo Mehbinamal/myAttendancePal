@@ -52,24 +52,30 @@ export type Database = {
       }
       subjects: {
         Row: {
+          code: string | null
           created_at: string
           description: string | null
           id: string
           name: string
+          schedule: string | null
           user_id: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name: string
+          schedule?: string | null
           user_id: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name?: string
+          schedule?: string | null
           user_id?: string
         }
         Relationships: []

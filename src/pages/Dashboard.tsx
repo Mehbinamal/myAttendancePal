@@ -7,6 +7,7 @@ import { useAttendance } from "@/contexts/AttendanceContext";
 import { MarkAttendanceDialog } from "@/components/MarkAttendanceDialog";
 
 interface ClassInfo {
+  id: string;
   subject: string;
   start_time: string;
   end_time: string;
@@ -27,19 +28,42 @@ const Dashboard: React.FC = () => {
   
   // Extract schedule information from subjects to build today's classes
   useEffect(() => {
-    console.log("Dashboard useEffect running", { subjects });
+    console.log("Dashboard useEffect running", { subjects, todayName });
     if (!subjects) return;
     
-    // This just filters subjects with schedules that match today
-    // In a real application, this would parse the schedule string properly
+    // Parse the schedule string to extract day and time information
     const classesForToday = subjects
-      .filter(subject => subject.schedule && subject.schedule.toLowerCase().includes(todayName.toLowerCase()))
-      .map(subject => ({
-        subject: subject.name,
-        start_time: "09:00", // Default time since we don't have actual time parsing
-        end_time: "10:30",  // Default time since we don't have actual time parsing
-        day: todayName
-      }));
+      .filter(subject => {
+        // Make sure the schedule exists and contains today's day name
+        return subject.schedule && 
+               subject.schedule.toLowerCase().includes(todayName.toLowerCase());
+      })
+      .map(subject => {
+        // Try to extract time information from the schedule string
+        // This is a simple parsing approach - could be more sophisticated
+        const scheduleStr = subject.schedule || '';
+        
+        // Default times in case we can't extract them
+        let startTime = "N/A";
+        let endTime = "N/A";
+        
+        // Try to extract times using regex - looking for patterns like "10:00 AM - 11:30 AM"
+        const timeRegex = /(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*-\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/i;
+        const timeMatch = scheduleStr.match(timeRegex);
+        
+        if (timeMatch) {
+          startTime = timeMatch[1];
+          endTime = timeMatch[2];
+        }
+        
+        return {
+          id: subject.id,
+          subject: subject.name,
+          start_time: startTime,
+          end_time: endTime,
+          day: todayName
+        };
+      });
     
     console.log("Today's classes:", classesForToday);
     setTodayClasses(classesForToday);
@@ -119,8 +143,8 @@ const Dashboard: React.FC = () => {
         <h2 className="text-xl font-semibold">Today's Schedule</h2>
         {todayClasses && todayClasses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {todayClasses.map((classItem, index) => (
-              <Card key={index} className="flex justify-between items-center">
+            {todayClasses.map((classItem) => (
+              <Card key={classItem.id} className="flex justify-between items-center">
                 <CardContent className="p-4 flex-1">
                   <h3 className="font-medium">{classItem.subject}</h3>
                   <p className="text-sm text-muted-foreground">
