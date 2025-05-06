@@ -25,7 +25,7 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Please select a date",
   }),
-  status: z.enum(["present", "absent"], {
+  status: z.enum(["present", "absent", "not_taken"], {
     required_error: "Please select attendance status",
   }),
   hours: z.coerce.number().positive().default(1),
@@ -170,7 +170,7 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex space-x-4"
+                      className="flex flex-wrap space-x-2 space-y-2"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
@@ -183,6 +183,12 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
                           <RadioGroupItem value="absent" />
                         </FormControl>
                         <FormLabel className="font-normal">Absent</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="not_taken" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Class Not Taken</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>

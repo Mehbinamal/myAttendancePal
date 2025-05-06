@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, CheckCircle, XCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Ban } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
 import { MarkAttendanceDialog } from "@/components/MarkAttendanceDialog";
@@ -13,7 +13,7 @@ interface AttendanceRecord {
   subject: string;
   code: string;
   date: string;
-  status: 'present' | 'absent';
+  status: 'present' | 'absent' | 'not_taken';
   time: string;
   subject_id: string;
   created_at: string;
@@ -70,16 +70,22 @@ const Attendance: React.FC = () => {
               className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm ${
                 record.status === "present"
                   ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
+                  : record.status === "absent"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-yellow-100 text-yellow-800"
               }`}
             >
               {record.status === "present" ? (
                 <>
                   <CheckCircle className="h-3.5 w-3.5" /> Present
                 </>
-              ) : (
+              ) : record.status === "absent" ? (
                 <>
                   <XCircle className="h-3.5 w-3.5" /> Absent
+                </>
+              ) : (
+                <>
+                  <Ban className="h-3.5 w-3.5" /> Not Taken
                 </>
               )}
             </span>
@@ -89,7 +95,7 @@ const Attendance: React.FC = () => {
     </Card>
   );
 
-  const filterRecords = (status?: "present" | "absent") =>
+  const filterRecords = (status?: "present" | "absent" | "not_taken") =>
     status ? attendanceRecords.filter(r => r.status === status) : attendanceRecords;
 
   const getDateStr = (offset: number) => {
@@ -116,6 +122,7 @@ const Attendance: React.FC = () => {
           <TabsTrigger value="all">All Records</TabsTrigger>
           <TabsTrigger value="present">Present</TabsTrigger>
           <TabsTrigger value="absent">Absent</TabsTrigger>
+          <TabsTrigger value="not_taken">Not Taken</TabsTrigger>
         </TabsList>
 
         {/* All Records */}
@@ -163,6 +170,17 @@ const Attendance: React.FC = () => {
             ))
           ) : (
             <p className="text-sm text-muted-foreground">No absent records found.</p>
+          )}
+        </TabsContent>
+        
+        {/* Not Taken */}
+        <TabsContent value="not_taken" className="space-y-3">
+          {filterRecords("not_taken").length > 0 ? (
+            filterRecords("not_taken").map((record) => (
+              <AttendanceCard key={record.id} record={record} />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No 'class not taken' records found.</p>
           )}
         </TabsContent>
       </Tabs>

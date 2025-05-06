@@ -75,10 +75,15 @@ export const AttendanceProvider = ({ children }) => {
           record.status === 'absent'
         ).length;
         
+        const not_taken_count = subjectAttendance.filter(record => 
+          record.status === 'not_taken'
+        ).length;
+        
         return {
           ...subject,
           present_count,
-          absent_count
+          absent_count,
+          not_taken_count
         };
       });
   
@@ -122,7 +127,8 @@ export const AttendanceProvider = ({ children }) => {
     const subjectWithCounts = {
       ...data[0],
       present_count: 0,
-      absent_count: 0
+      absent_count: 0,
+      not_taken_count: 0
     };
   
     setSubjects(prev => [...prev, subjectWithCounts]);
@@ -201,7 +207,24 @@ export const AttendanceProvider = ({ children }) => {
       toast.error("Failed to add attendance");
       throw error;
     }
+    
+    // Update attendance records
     setAttendance(prev => [...prev, data[0]]);
+    
+    // Update subject counts
+    setSubjects(prev => 
+      prev.map(subject => {
+        if (subject.id === record.subject_id) {
+          const statusCountKey = `${record.status}_count`;
+          return {
+            ...subject,
+            [statusCountKey]: (subject[statusCountKey] || 0) + 1
+          };
+        }
+        return subject;
+      })
+    );
+    
     toast.success("Attendance recorded successfully");
     return data[0];
   };
@@ -261,6 +284,7 @@ export const AttendanceProvider = ({ children }) => {
       total: attendance.length,
       present: attendance.filter(record => record.status === 'present').length,
       absent: attendance.filter(record => record.status === 'absent').length,
+      not_taken: attendance.filter(record => record.status === 'not_taken').length,
       subjects: {}
     };
     
@@ -268,13 +292,18 @@ export const AttendanceProvider = ({ children }) => {
     subjects.forEach(subject => {
       const subjectAttendance = getAttendanceBySubject(subject.id);
       const present = subjectAttendance.filter(record => record.status === 'present').length;
+      const absent = subjectAttendance.filter(record => record.status === 'absent').length;
+      const not_taken = subjectAttendance.filter(record => record.status === 'not_taken').length;
       const total = subjectAttendance.length;
+      const attendedTotal = total - not_taken; // Classes that were actually held
+      
       stats.subjects[subject.id] = {
         name: subject.name,
         total,
         present,
-        absent: total - present,
-        percentage: total > 0 ? Math.round((present / total) * 100) : 0
+        absent,
+        not_taken,
+        percentage: attendedTotal > 0 ? Math.round((present / attendedTotal) * 100) : 0
       };
     });
     

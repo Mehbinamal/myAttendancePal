@@ -37,6 +37,7 @@ const App = () => {
                   <Route index element={<Dashboard />} />
                   <Route path="subjects" element={<Subjects />} />
                   <Route path="attendance" element={<Attendance />} />
+                  <Route path="attendance/:subjectId" element={<Attendance />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
