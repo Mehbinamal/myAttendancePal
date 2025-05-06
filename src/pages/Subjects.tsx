@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PlusCircle } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { AddSubjectDialog } from "@/components/AddSubjectDialog";
+import { useNavigate } from "react-router-dom";
 
 const Subjects: React.FC = () => {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const { subjects, isLoading } = useAttendance();
+  const navigate = useNavigate();
 
   console.log("Rendering Subjects component with:", { subjects, isLoading });
 
@@ -16,6 +18,10 @@ const Subjects: React.FC = () => {
     const total = present + absent;
     if (total === 0) return 0;
     return Math.round((present / total) * 100);
+  };
+
+  const handleViewDetails = (subjectId: string) => {
+    navigate(`/attendance?subject=${subjectId}`);
   };
 
   return (
@@ -87,7 +93,11 @@ const Subjects: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex justify-end mt-4">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleViewDetails(subject.id)}
+                      >
                         View Details
                       </Button>
                     </div>

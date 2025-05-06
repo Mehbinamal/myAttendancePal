@@ -34,21 +34,21 @@ const Dashboard: React.FC = () => {
     // Parse the schedule string to extract day and time information
     const classesForToday = subjects
       .filter(subject => {
-        // Make sure the schedule exists and contains today's day name
-        return subject.schedule && 
-               subject.schedule.toLowerCase().includes(todayName.toLowerCase());
+        if (!subject.schedule) return false;
+        
+        // Check if schedule contains today's day name (full or abbreviated)
+        const dayPattern = new RegExp(`\\b${todayName.substring(0, 3)}\\w*\\b`, 'i');
+        return dayPattern.test(subject.schedule);
       })
       .map(subject => {
-        // Try to extract time information from the schedule string
-        // This is a simple parsing approach - could be more sophisticated
         const scheduleStr = subject.schedule || '';
         
         // Default times in case we can't extract them
         let startTime = "N/A";
         let endTime = "N/A";
         
-        // Try to extract times using regex - looking for patterns like "10:00 AM - 11:30 AM"
-        const timeRegex = /(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*-\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)/i;
+        // Try to extract times using regex - looking for patterns like "10:00 AM - 11:30 AM" or "10 - 12"
+        const timeRegex = /(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)\s*-\s*(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)/i;
         const timeMatch = scheduleStr.match(timeRegex);
         
         if (timeMatch) {
