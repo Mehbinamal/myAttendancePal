@@ -1,18 +1,22 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Calendar } from "lucide-react";
+import { Calendar, User, LogOut } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showMobileProfile, setShowMobileProfile] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+    setShowMobileProfile(false);
   };
 
   const isActive = (path: string) => {
@@ -85,13 +89,50 @@ const Navbar: React.FC = () => {
           </svg>
           <span className="text-xs mt-1">Attendance</span>
         </Link>
-        <div className="flex flex-col items-center p-2 flex-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="5"></circle>
-            <path d="M20 21a8 8 0 0 0-16 0"></path>
-          </svg>
-          <span className="text-xs mt-1">Profile</span>
-        </div>
+        
+        {/* Profile button with Sheet */}
+        <Sheet open={showMobileProfile} onOpenChange={setShowMobileProfile}>
+          <SheetTrigger asChild>
+            <button className="flex flex-col items-center p-2 flex-1">
+              <User className={`h-5 w-5 ${showMobileProfile ? "text-primary" : ""}`} />
+              <span className="text-xs mt-1">Profile</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-auto pb-12">
+            <SheetHeader className="text-left mb-4">
+              <SheetTitle>Your Profile</SheetTitle>
+            </SheetHeader>
+            {user ? (
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">Name</p>
+                  <p className="text-lg">{user.name}</p>
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">Email</p>
+                  <p className="text-lg">{user.email}</p>
+                </div>
+                <Separator className="my-4" />
+                <Button 
+                  variant="destructive" 
+                  onClick={handleLogout} 
+                  className="w-full"
+                  size="lg"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p>Not logged in</p>
+                <Button onClick={() => navigate("/login")} className="mt-2">
+                  Login
+                </Button>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );
