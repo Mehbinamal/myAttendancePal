@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Subject name must be at least 2 characters." }),
   code: z.string().min(2, { message: "Subject code must be at least 2 characters." }),
-  schedule: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -32,39 +33,125 @@ interface EditSubjectDialogProps {
   } | null;
 }
 
+// Days of the week
+const daysOfWeek = [
+  { id: "mon", label: "Monday" },
+  { id: "tue", label: "Tuesday" },
+  { id: "wed", label: "Wednesday" },
+  { id: "thu", label: "Thursday" },
+  { id: "fri", label: "Friday" },
+  { id: "sat", label: "Saturday" },
+  { id: "sun", label: "Sunday" },
+];
+
 export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDialogProps) {
   const { updateSubject } = useAttendance();
+  const [selectedTab, setSelectedTab] = useState("basic");
+  const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({});
+  const [timeSlots, setTimeSlots] = useState<Record<string, { startTime: string; endTime: string }>>({});
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       code: "",
-      schedule: "",
       description: "",
     },
   });
 
-  // Reset form and populate with subject data when dialog opens
+  // Parse schedule string into structured data when dialog opens with subject
   useEffect(() => {
     if (open && subject) {
+      // Reset form fields
       form.reset({
         name: subject.name,
         code: subject.code,
-        schedule: subject.schedule || "",
         description: subject.description || "",
       });
+
+      // Parse schedule string if it exists
+      if (subject.schedule) {
+        const newSelectedDays: Record<string, boolean> = {};
+        const newTimeSlots: Record<string, { startTime: string; endTime: string }> = {};
+
+        // Split schedule entries (e.g., "Monday 09:00 - 10:30; Wednesday 13:00 - 14:30")
+        const scheduleEntries = subject.schedule.split(';').map(entry => entry.trim());
+        
+        scheduleEntries.forEach(entry => {
+          // Match pattern like "Monday 09:00 - 10:30"
+          const match = entry.match(/^(\w+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+          if (match) {
+            const [_, dayName, startTime, endTime] = match;
+            // Find the day ID based on the day name
+            const dayObject = daysOfWeek.find(
+              day => day.label.toLowerCase() === dayName.toLowerCase()
+            );
+            
+            if (dayObject) {
+              const dayId = dayObject.id;
+              newSelectedDays[dayId] = true;
+              newTimeSlots[dayId] = { startTime, endTime };
+            }
+          }
+        });
+
+        setSelectedDays(newSelectedDays);
+        setTimeSlots(newTimeSlots);
+      } else {
+        setSelectedDays({});
+        setTimeSlots({});
+      }
     }
   }, [open, subject, form]);
+
+  const toggleDay = (dayId: string) => {
+    setSelectedDays(prev => {
+      const newState = { ...prev, [dayId]: !prev[dayId] };
+      
+      // Initialize time slots for newly selected days
+      if (newState[dayId] && !timeSlots[dayId]) {
+        setTimeSlots(prevSlots => ({
+          ...prevSlots,
+          [dayId]: { startTime: "09:00", endTime: "10:00" }
+        }));
+      }
+      
+      return newState;
+    });
+  };
+
+  const handleTimeChange = (dayId: string, field: 'startTime' | 'endTime', value: string) => {
+    setTimeSlots(prev => ({
+      ...prev,
+      [dayId]: { 
+        ...prev[dayId],
+        [field]: value 
+      }
+    }));
+  };
+
+  const formatSchedule = () => {
+    const scheduleEntries = Object.entries(selectedDays)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([dayId, _]) => {
+        const dayName = daysOfWeek.find(day => day.id === dayId)?.label || '';
+        const { startTime, endTime } = timeSlots[dayId] || { startTime: "", endTime: "" };
+        return `${dayName} ${startTime} - ${endTime}`;
+      });
+    
+    return scheduleEntries.join('; ');
+  };
 
   const onSubmit = async (data: FormValues) => {
     try {
       if (!subject) return;
       
+      const schedule = formatSchedule();
+      
       await updateSubject(subject.id, {
         name: data.name,
         code: data.code,
-        schedule: data.schedule || "",
+        schedule: schedule,
         description: data.description || "",
       });
       
@@ -80,79 +167,162 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
     <Dialog open={open} onOpenChange={(newOpenState) => {
       if (!newOpenState) {
         form.reset();
+        setSelectedDays({});
+        setTimeSlots({});
+        setSelectedTab("basic");
       }
       onOpenChange(newOpenState);
     }}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Edit Subject</DialogTitle>
           <DialogDescription>
             Update the subject information.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Mathematics" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject Code</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. MATH101" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="schedule"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Schedule</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Mon, Wed 10-12" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Optional description" 
-                      className="resize-none" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit">Update Subject</Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+          </TabsList>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <TabsContent value="basic" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Mathematics" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. MATH101" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Optional description" 
+                          className="resize-none" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              
+              <TabsContent value="schedule" className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Select Days</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {daysOfWeek.map(day => (
+                      <div key={day.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`edit-day-${day.id}`} 
+                          checked={selectedDays[day.id] || false}
+                          onCheckedChange={() => toggleDay(day.id)}
+                        />
+                        <label
+                          htmlFor={`edit-day-${day.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {day.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Set Time for Each Day</h3>
+                  <div className="space-y-3">
+                    {Object.entries(selectedDays)
+                      .filter(([_, isSelected]) => isSelected)
+                      .map(([dayId, _]) => {
+                        const dayName = daysOfWeek.find(day => day.id === dayId)?.label;
+                        const timeSlot = timeSlots[dayId] || { startTime: "", endTime: "" };
+                        
+                        return (
+                          <div key={dayId} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                            <div className="font-medium text-sm">{dayName}</div>
+                            <div className="flex items-center">
+                              <Input 
+                                type="time" 
+                                value={timeSlot.startTime}
+                                onChange={(e) => handleTimeChange(dayId, 'startTime', e.target.value)}
+                                className="w-28"
+                              />
+                              <span className="mx-2">-</span>
+                              <Input 
+                                type="time" 
+                                value={timeSlot.endTime}
+                                onChange={(e) => handleTimeChange(dayId, 'endTime', e.target.value)}
+                                className="w-28"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  
+                  {Object.values(selectedDays).some(selected => selected) ? null : (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Select days to set up your schedule
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <DialogFooter>
+                {selectedTab === "schedule" ? (
+                  <div className="flex justify-end gap-2 w-full">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => setSelectedTab("basic")}
+                    >
+                      Previous
+                    </Button>
+                    <Button type="submit">Update Subject</Button>
+                  </div>
+                ) : (
+                  <div className="flex justify-end gap-2 w-full">
+                    <Button 
+                      type="button" 
+                      onClick={() => setSelectedTab("schedule")}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </DialogFooter>
+            </form>
+          </Form>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

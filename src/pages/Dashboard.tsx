@@ -31,39 +31,34 @@ const Dashboard: React.FC = () => {
     console.log("Dashboard useEffect running", { subjects, todayName });
     if (!subjects) return;
     
-    // Parse the schedule string to extract day and time information
-    const classesForToday = subjects
-      .filter(subject => {
-        if (!subject.schedule) return false;
+    const classesForToday: ClassInfo[] = [];
+    
+    subjects.forEach(subject => {
+      if (!subject.schedule) return;
+      
+      // Parse the new schedule format: "Monday 09:00 - 10:30; Wednesday 13:00 - 14:30"
+      const scheduleEntries = subject.schedule.split(';').map(entry => entry.trim());
+      
+      scheduleEntries.forEach(entry => {
+        // Match pattern like "Monday 09:00 - 10:30"
+        const match = entry.match(/^(\w+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
         
-        // Check if schedule contains today's day name (full or abbreviated)
-        const dayPattern = new RegExp(`\\b${todayName.substring(0, 3)}\\w*\\b`, 'i');
-        return dayPattern.test(subject.schedule);
-      })
-      .map(subject => {
-        const scheduleStr = subject.schedule || '';
-        
-        // Default times in case we can't extract them
-        let startTime = "N/A";
-        let endTime = "N/A";
-        
-        // Try to extract times using regex - looking for patterns like "10:00 AM - 11:30 AM" or "10 - 12"
-        const timeRegex = /(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)\s*-\s*(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)/i;
-        const timeMatch = scheduleStr.match(timeRegex);
-        
-        if (timeMatch) {
-          startTime = timeMatch[1];
-          endTime = timeMatch[2];
+        if (match) {
+          const [_, dayName, startTime, endTime] = match;
+          
+          // Check if this entry is for today
+          if (dayName.toLowerCase() === todayName.toLowerCase()) {
+            classesForToday.push({
+              id: subject.id,
+              subject: subject.name,
+              start_time: startTime,
+              end_time: endTime,
+              day: todayName
+            });
+          }
         }
-        
-        return {
-          id: subject.id,
-          subject: subject.name,
-          start_time: startTime,
-          end_time: endTime,
-          day: todayName
-        };
       });
+    });
     
     console.log("Today's classes:", classesForToday);
     setTodayClasses(classesForToday);
