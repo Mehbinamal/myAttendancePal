@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Subject name must be at least 2 characters." }),
@@ -305,29 +306,31 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
                   {scheduleItems.length > 0 && (
                     <div className="mt-4">
                       <h3 className="text-sm font-medium mb-2">Schedule</h3>
-                      <div className="space-y-2 border rounded-md p-3 bg-slate-50">
-                        {scheduleItems.map((item, index) => {
-                          // Capitalize first letter for display
-                          const dayName = item.day.charAt(0).toUpperCase() + item.day.slice(1);
-                          return (
-                            <div key={index} className="flex justify-between items-center bg-white p-2 rounded border">
-                              <span className="font-medium">{dayName}</span>
-                              <div className="flex items-center gap-2">
-                                <span>{item.startTime} - {item.endTime}</span>
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => removeTimeSlot(index)}
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
+                      <ScrollArea className="h-[200px] rounded-md border">
+                        <div className="space-y-2 p-3 bg-slate-50">
+                          {scheduleItems.map((item, index) => {
+                            // Capitalize first letter for display
+                            const dayName = item.day.charAt(0).toUpperCase() + item.day.slice(1);
+                            return (
+                              <div key={index} className="flex justify-between items-center bg-white p-2 rounded border">
+                                <span className="font-medium">{dayName}</span>
+                                <div className="flex items-center gap-2">
+                                  <span>{item.startTime} - {item.endTime}</span>
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => removeTimeSlot(index)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
                     </div>
                   )}
                   
