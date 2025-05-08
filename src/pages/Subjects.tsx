@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,7 @@ const Subjects: React.FC = () => {
   };
 
   const handleViewDetails = (subjectId: string) => {
-    navigate(`/attendance?subject=${subjectId}`);
+    navigate(`/dashboard/subjects/${subjectId}`);
   };
 
   return (

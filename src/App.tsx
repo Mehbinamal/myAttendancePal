@@ -12,6 +12,7 @@ import Welcome from "@/pages/Welcome";
 import Dashboard from "@/pages/Dashboard";
 import Subjects from "@/pages/Subjects";
 import Attendance from "@/pages/Attendance";
+import SubjectAttendance from "@/pages/SubjectAttendance";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import NotFound from "@/pages/NotFound";
@@ -36,8 +37,8 @@ const App = () => {
                 <Route path="/dashboard" element={<AppLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="subjects" element={<Subjects />} />
+                  <Route path="subjects/:subjectId" element={<SubjectAttendance />} />
                   <Route path="attendance" element={<Attendance />} />
-                  <Route path="attendance/:subjectId" element={<Attendance />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
