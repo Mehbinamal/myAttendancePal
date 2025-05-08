@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Subject name must be at least 2 characters." }),
@@ -35,20 +35,27 @@ interface EditSubjectDialogProps {
 
 // Days of the week
 const daysOfWeek = [
-  { id: "mon", label: "Monday" },
-  { id: "tue", label: "Tuesday" },
-  { id: "wed", label: "Wednesday" },
-  { id: "thu", label: "Thursday" },
-  { id: "fri", label: "Friday" },
-  { id: "sat", label: "Saturday" },
-  { id: "sun", label: "Sunday" },
+  { id: "monday", label: "Monday" },
+  { id: "tuesday", label: "Tuesday" },
+  { id: "wednesday", label: "Wednesday" },
+  { id: "thursday", label: "Thursday" },
+  { id: "friday", label: "Friday" },
+  { id: "saturday", label: "Saturday" },
+  { id: "sunday", label: "Sunday" },
 ];
 
 export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDialogProps) {
   const { updateSubject } = useAttendance();
   const [selectedTab, setSelectedTab] = useState("basic");
-  const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({});
-  const [timeSlots, setTimeSlots] = useState<Record<string, { startTime: string; endTime: string }>>({});
+  const [scheduleItems, setScheduleItems] = useState<Array<{
+    day: string;
+    startTime: string;
+    endTime: string;
+  }>>([]);
+  
+  const [selectedDay, setSelectedDay] = useState<string>("");
+  const [startTime, setStartTime] = useState<string>("09:00");
+  const [endTime, setEndTime] = useState<string>("10:00");
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -71,9 +78,8 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
 
       // Parse schedule string if it exists
       if (subject.schedule) {
-        const newSelectedDays: Record<string, boolean> = {};
-        const newTimeSlots: Record<string, { startTime: string; endTime: string }> = {};
-
+        const parsedScheduleItems: Array<{day: string; startTime: string; endTime: string}> = [];
+        
         // Split schedule entries (e.g., "Monday 09:00 - 10:30; Wednesday 13:00 - 14:30")
         const scheduleEntries = subject.schedule.split(';').map(entry => entry.trim());
         
@@ -81,65 +87,73 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
           // Match pattern like "Monday 09:00 - 10:30"
           const match = entry.match(/^(\w+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
           if (match) {
-            const [_, dayName, startTime, endTime] = match;
-            // Find the day ID based on the day name
-            const dayObject = daysOfWeek.find(
-              day => day.label.toLowerCase() === dayName.toLowerCase()
-            );
+            const [_, day, startTime, endTime] = match;
             
-            if (dayObject) {
-              const dayId = dayObject.id;
-              newSelectedDays[dayId] = true;
-              newTimeSlots[dayId] = { startTime, endTime };
-            }
+            // Convert day name to lowercase to match our id format
+            const dayId = day.toLowerCase();
+            
+            parsedScheduleItems.push({
+              day: dayId,
+              startTime,
+              endTime
+            });
           }
         });
 
-        setSelectedDays(newSelectedDays);
-        setTimeSlots(newTimeSlots);
+        setScheduleItems(parsedScheduleItems);
       } else {
-        setSelectedDays({});
-        setTimeSlots({});
+        setScheduleItems([]);
       }
     }
   }, [open, subject, form]);
 
-  const toggleDay = (dayId: string) => {
-    setSelectedDays(prev => {
-      const newState = { ...prev, [dayId]: !prev[dayId] };
-      
-      // Initialize time slots for newly selected days
-      if (newState[dayId] && !timeSlots[dayId]) {
-        setTimeSlots(prevSlots => ({
-          ...prevSlots,
-          [dayId]: { startTime: "09:00", endTime: "10:00" }
-        }));
+  const addTimeSlot = () => {
+    if (!selectedDay) {
+      toast.error("Please select a day first");
+      return;
+    }
+
+    if (!startTime || !endTime) {
+      toast.error("Start and end time are required");
+      return;
+    }
+
+    // Check if this day already has this exact time slot
+    const exists = scheduleItems.some(
+      item => item.day === selectedDay && 
+             item.startTime === startTime && 
+             item.endTime === endTime
+    );
+
+    if (exists) {
+      toast.error("This time slot already exists for the selected day");
+      return;
+    }
+
+    setScheduleItems([
+      ...scheduleItems,
+      {
+        day: selectedDay,
+        startTime,
+        endTime
       }
-      
-      return newState;
-    });
+    ]);
+
+    // Reset input fields but keep the day selected for convenience
+    setStartTime("09:00");
+    setEndTime("10:00");
   };
 
-  const handleTimeChange = (dayId: string, field: 'startTime' | 'endTime', value: string) => {
-    setTimeSlots(prev => ({
-      ...prev,
-      [dayId]: { 
-        ...prev[dayId],
-        [field]: value 
-      }
-    }));
+  const removeTimeSlot = (index: number) => {
+    setScheduleItems(scheduleItems.filter((_, i) => i !== index));
   };
 
   const formatSchedule = () => {
-    const scheduleEntries = Object.entries(selectedDays)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([dayId, _]) => {
-        const dayName = daysOfWeek.find(day => day.id === dayId)?.label || '';
-        const { startTime, endTime } = timeSlots[dayId] || { startTime: "", endTime: "" };
-        return `${dayName} ${startTime} - ${endTime}`;
-      });
-    
-    return scheduleEntries.join('; ');
+    return scheduleItems.map(item => {
+      // Capitalize first letter of day for consistent format
+      const dayName = item.day.charAt(0).toUpperCase() + item.day.slice(1);
+      return `${dayName} ${item.startTime} - ${item.endTime}`;
+    }).join('; ');
   };
 
   const onSubmit = async (data: FormValues) => {
@@ -167,9 +181,11 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
     <Dialog open={open} onOpenChange={(newOpenState) => {
       if (!newOpenState) {
         form.reset();
-        setSelectedDays({});
-        setTimeSlots({});
+        setSelectedDay("");
+        setStartTime("09:00");
+        setEndTime("10:00");
         setSelectedTab("basic");
+        // Don't reset scheduleItems here as it will be reset when the dialog reopens
       }
       onOpenChange(newOpenState);
     }}>
@@ -236,63 +252,89 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
               </TabsContent>
               
               <TabsContent value="schedule" className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Select Days</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {daysOfWeek.map(day => (
-                      <div key={day.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`edit-day-${day.id}`} 
-                          checked={selectedDays[day.id] || false}
-                          onCheckedChange={() => toggleDay(day.id)}
-                        />
-                        <label
-                          htmlFor={`edit-day-${day.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium mb-2">Add Schedule</h3>
+                  
+                  {/* Day selection */}
+                  <div className="space-y-2">
+                    <FormLabel>Select Day</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {daysOfWeek.map((day) => (
+                        <Badge 
+                          key={day.id}
+                          variant={selectedDay === day.id ? "default" : "outline"} 
+                          className="cursor-pointer"
+                          onClick={() => setSelectedDay(day.id)}
                         >
                           {day.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Set Time for Each Day</h3>
-                  <div className="space-y-3">
-                    {Object.entries(selectedDays)
-                      .filter(([_, isSelected]) => isSelected)
-                      .map(([dayId, _]) => {
-                        const dayName = daysOfWeek.find(day => day.id === dayId)?.label;
-                        const timeSlot = timeSlots[dayId] || { startTime: "", endTime: "" };
-                        
-                        return (
-                          <div key={dayId} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                            <div className="font-medium text-sm">{dayName}</div>
-                            <div className="flex items-center">
-                              <Input 
-                                type="time" 
-                                value={timeSlot.startTime}
-                                onChange={(e) => handleTimeChange(dayId, 'startTime', e.target.value)}
-                                className="w-28"
-                              />
-                              <span className="mx-2">-</span>
-                              <Input 
-                                type="time" 
-                                value={timeSlot.endTime}
-                                onChange={(e) => handleTimeChange(dayId, 'endTime', e.target.value)}
-                                className="w-28"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                   
-                  {Object.values(selectedDays).some(selected => selected) ? null : (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Select days to set up your schedule
-                    </p>
+                  {/* Time slot selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <FormLabel>Start Time</FormLabel>
+                      <Input 
+                        type="time" 
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <FormLabel>End Time</FormLabel>
+                      <Input 
+                        type="time" 
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Add button */}
+                  <Button 
+                    type="button"
+                    onClick={addTimeSlot}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" /> Add Time Slot
+                  </Button>
+                  
+                  {/* Display added schedule items */}
+                  {scheduleItems.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium mb-2">Schedule</h3>
+                      <div className="space-y-2 border rounded-md p-3 bg-slate-50">
+                        {scheduleItems.map((item, index) => {
+                          // Capitalize first letter for display
+                          const dayName = item.day.charAt(0).toUpperCase() + item.day.slice(1);
+                          return (
+                            <div key={index} className="flex justify-between items-center bg-white p-2 rounded border">
+                              <span className="font-medium">{dayName}</span>
+                              <div className="flex items-center gap-2">
+                                <span>{item.startTime} - {item.endTime}</span>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => removeTimeSlot(index)}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {scheduleItems.length === 0 && (
+                    <div className="text-sm text-muted-foreground mt-2 text-center py-4 border rounded-md">
+                      No schedule items added yet
+                    </div>
                   )}
                 </div>
               </TabsContent>
