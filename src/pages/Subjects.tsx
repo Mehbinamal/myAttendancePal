@@ -1,13 +1,30 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, MoreVertical, Pencil, Trash } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { AddSubjectDialog } from "@/components/AddSubjectDialog";
+import { EditSubjectDialog } from "@/components/EditSubjectDialog";
+import { DeleteSubjectDialog } from "@/components/DeleteSubjectDialog";
 import { useNavigate } from "react-router-dom";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const Subjects: React.FC = () => {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
+  const [editSubjectOpen, setEditSubjectOpen] = useState(false);
+  const [deleteSubjectOpen, setDeleteSubjectOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const { subjects, isLoading } = useAttendance();
   const navigate = useNavigate();
 
@@ -21,6 +38,16 @@ const Subjects: React.FC = () => {
 
   const handleViewDetails = (subjectId: string) => {
     navigate(`/dashboard/subjects/${subjectId}`);
+  };
+
+  const handleEdit = (subject: any) => {
+    setSelectedSubject(subject);
+    setEditSubjectOpen(true);
+  };
+
+  const handleDelete = (subject: any) => {
+    setSelectedSubject(subject);
+    setDeleteSubjectOpen(true);
   };
 
   return (
@@ -61,47 +88,93 @@ const Subjects: React.FC = () => {
               const percentage = calculateAttendancePercentage(present, absent);
 
               return (
-                <Card key={subject.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{subject.name}</CardTitle>
-                        <CardDescription className="mt-1">{subject.code}</CardDescription>
-                      </div>
-                      <div className={`text-sm font-medium px-2 py-1 rounded-md ${
-                        percentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}>
-                        {percentage}% Attendance
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-2">{subject.schedule}</p>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-green-600">{present}</span>{" "}
-                        <span className="text-muted-foreground text-xs">Present</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-red-600">{absent}</span>{" "}
-                        <span className="text-muted-foreground text-xs">Absent</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">{present + absent}</span>{" "}
-                        <span className="text-muted-foreground text-xs">Total</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-end mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleViewDetails(subject.id)}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ContextMenu key={subject.id}>
+                  <ContextMenuTrigger>
+                    <Card className="overflow-hidden">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle>{subject.name}</CardTitle>
+                            <CardDescription className="mt-1">{subject.code}</CardDescription>
+                          </div>
+                          <div className="flex items-center">
+                            <div className={`text-sm font-medium px-2 py-1 rounded-md mr-2 ${
+                              percentage >= 75 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            }`}>
+                              {percentage}% Attendance
+                            </div>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2">
+                                <div className="grid gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    className="justify-start flex items-center gap-2" 
+                                    onClick={() => handleEdit(subject)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    Edit Subject
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    className="justify-start flex items-center gap-2 text-destructive" 
+                                    onClick={() => handleDelete(subject)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                    Delete Subject
+                                  </Button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground mb-2">{subject.schedule}</p>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-green-600">{present}</span>{" "}
+                            <span className="text-muted-foreground text-xs">Present</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-red-600">{absent}</span>{" "}
+                            <span className="text-muted-foreground text-xs">Absent</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">{present + absent}</span>{" "}
+                            <span className="text-muted-foreground text-xs">Total</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewDetails(subject.id)}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48">
+                    <ContextMenuItem onClick={() => handleViewDetails(subject.id)}>
+                      View Details
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleEdit(subject)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleDelete(subject)} className="text-destructive">
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })
           )}
@@ -109,6 +182,16 @@ const Subjects: React.FC = () => {
       )}
 
       <AddSubjectDialog open={addSubjectOpen} onOpenChange={setAddSubjectOpen} />
+      <EditSubjectDialog 
+        open={editSubjectOpen} 
+        onOpenChange={setEditSubjectOpen} 
+        subject={selectedSubject} 
+      />
+      <DeleteSubjectDialog 
+        open={deleteSubjectOpen} 
+        onOpenChange={setDeleteSubjectOpen} 
+        subject={selectedSubject} 
+      />
     </div>
   );
 };
