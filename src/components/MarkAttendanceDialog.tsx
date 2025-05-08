@@ -37,9 +37,10 @@ type FormValues = z.infer<typeof formSchema>;
 interface MarkAttendanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preSelectedSubject?: string;
 }
 
-export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialogProps) {
+export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }: MarkAttendanceDialogProps) {
   const { addAttendance, subjects } = useAttendance();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,7 +54,7 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
     },
   });
 
-  // Reset form when dialog opens/closes
+  // Reset form when dialog opens/closes and set preSelectedSubject if provided
   useEffect(() => {
     if (!open) {
       form.reset({
@@ -62,8 +63,10 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
         hours: 1,
         note: "",
       });
+    } else if (preSelectedSubject) {
+      form.setValue("subject_id", preSelectedSubject);
     }
-  }, [open, form]);
+  }, [open, form, preSelectedSubject]);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -103,7 +106,7 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Subject</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a subject" />
