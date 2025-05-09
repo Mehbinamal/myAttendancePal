@@ -124,9 +124,9 @@ const Welcome: React.FC = () => {
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p>&copy; 2025 AttendancePal. All rights reserved.</p>
           <div className="flex justify-center gap-4 mt-4">
-            <Link to="/login" className="hover:text-primary transition-colors">Login</Link>
-            <Link to="/signup" className="hover:text-primary transition-colors">Sign Up</Link>
-            <Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
+            <a href="https://mehbinamal.github.io" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+              Meet the Creator
+            </a>
           </div>
         </div>
       </footer>
