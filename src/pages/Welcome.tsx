@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -241,15 +240,14 @@ const Welcome: React.FC = () => {
             animate={howItWorksInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
-              className="inline-block"
-              initial={{ rotate: -5 }}
-              animate={howItWorksInView ? { rotate: 0 } : { rotate: -5 }}
-              transition={{ duration: 0.4, type: "spring" }}
+            <motion.div
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-purple-400 via-pink-300 to-blue-400 shadow-lg text-white font-semibold text-lg mb-4"
+              initial={{ scale: 0.95, opacity: 0.8 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
             >
-              <Badge className="mb-4 px-3 py-1 text-base bg-primary/20 hover:bg-primary/30 border-primary/10">
-                <Sparkles className="mr-1 h-4 w-4" /> Simple Process
-              </Badge>
+              <Sparkles className="h-6 w-6 animate-pulse" />
+              Simple Process
             </motion.div>
             <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mb-4">How It Works</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -259,10 +257,6 @@ const Welcome: React.FC = () => {
           
           {/* Steps with simplified designs - removed hover cards and learn more buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {/* Connecting elements for desktop */}
-            <div className="absolute top-1/2 left-[25%] right-[25%] h-1 bg-gradient-to-r from-primary/30 to-purple-500/30 rounded-full hidden md:block"></div>
-            <div className="absolute top-1/2 left-[50%] right-[0%] h-1 bg-gradient-to-r from-purple-500/30 to-primary/30 rounded-full hidden md:block"></div>
-            
             {[
               { 
                 num: 1, 
@@ -294,25 +288,29 @@ const Welcome: React.FC = () => {
                 transition={{ duration: 0.6, delay: i * 0.2 }}
               >
                 <motion.div 
-                  className="w-20 h-20 rounded-2xl bg-gradient-to-br border border-white/10 shadow-lg flex items-center justify-center text-2xl font-bold mb-6 cursor-pointer relative z-20"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${step.num === 1 ? 'var(--primary)' : step.num === 2 ? '#9061F9' : '#6366F1'} 0%, transparent 100%)`,
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                  className="w-20 h-20 rounded-full border-4 shadow-lg flex items-center justify-center text-2xl font-bold mb-6 cursor-pointer relative z-20"
+                  style={{
+                    background: step.num === 1
+                      ? "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
+                      : step.num === 2
+                      ? "linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%)"
+                      : "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)",
+                    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
+                    borderColor: "#fff"
                   }}
-                  whileHover={{ 
-                    scale: 1.1,
-                    boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
-                    rotateY: 15,
-                    rotateX: -15
+                  whileHover={{
+                    scale: 1.12,
+                    boxShadow: "0 12px 40px 0 rgba(31, 38, 135, 0.25)"
                   }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 >
-                  <step.icon className="h-8 w-8 text-white" />
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white text-primary text-sm flex items-center justify-center font-bold shadow-md">
+                  <step.icon className="h-10 w-10 text-white drop-shadow-lg" />
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white text-purple-500 text-base flex items-center justify-center font-bold shadow-md border-2 border-purple-200">
                     {step.num}
                   </div>
                 </motion.div>
                 <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                <div className="w-16 h-1 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full mx-auto mb-2"></div>
                 <p>{step.desc}</p>
               </motion.div>
             ))}

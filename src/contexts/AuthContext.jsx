@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,12 +18,25 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signup = async (name, email, password) => {
-    try{
+    try {
+      // First check if user already exists using auth API
+      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-password-for-check', // This will fail if user exists
+      });
+
+      // If we get a specific error, it means the user exists
+      if (checkError && checkError.message.includes('Invalid login credentials')) {
+        toast.error("A user with this email already exists");
+        return false;
+      }
+
+      // If we get any other error, proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options :{
-          data:{ full_name:name},
+        options: {
+          data: { full_name: name },
         },
       });
 
