@@ -14,9 +14,10 @@ const Welcome: React.FC = () => {
   const howItWorksRef = useRef(null);
   const ctaRef = useRef(null);
   
-  const featuresInView = useInView(featuresRef, { once: true, threshold: 0.2 });
-  const howItWorksInView = useInView(howItWorksRef, { once: true, threshold: 0.2 });
-  const ctaInView = useInView(ctaRef, { once: true, threshold: 0.2 });
+  // Fix the TypeScript errors by removing the threshold option
+  const featuresInView = useInView(featuresRef, { once: true });
+  const howItWorksInView = useInView(howItWorksRef, { once: true });
+  const ctaInView = useInView(ctaRef, { once: true });
   
   // Parallax effect for the hero section
   const { scrollYProgress } = useScroll();
@@ -220,7 +221,7 @@ const Welcome: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Completely redesigned "How It Works" Section with isometric cards and animations */}
+      {/* Simplified "How It Works" Section - removed hover cards and learn more buttons */}
       <motion.div 
         className="container mx-auto px-4 py-20 my-8"
         ref={howItWorksRef}
@@ -256,7 +257,7 @@ const Welcome: React.FC = () => {
             </p>
           </motion.div>
           
-          {/* Steps with 3D-like hover cards */}
+          {/* Steps with simplified designs - removed hover cards and learn more buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
             {/* Connecting elements for desktop */}
             <div className="absolute top-1/2 left-[25%] right-[25%] h-1 bg-gradient-to-r from-primary/30 to-purple-500/30 rounded-full hidden md:block"></div>
@@ -292,39 +293,25 @@ const Welcome: React.FC = () => {
                 animate={howItWorksInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                 transition={{ duration: 0.6, delay: i * 0.2 }}
               >
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <motion.div 
-                      className="w-20 h-20 rounded-2xl bg-gradient-to-br border border-white/10 shadow-lg flex items-center justify-center text-2xl font-bold mb-6 cursor-pointer relative z-20"
-                      style={{ 
-                        background: `linear-gradient(135deg, ${step.num === 1 ? 'var(--primary)' : step.num === 2 ? '#9061F9' : '#6366F1'} 0%, transparent 100%)`,
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                      }}
-                      whileHover={{ 
-                        scale: 1.1,
-                        boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
-                        rotateY: 15,
-                        rotateX: -15
-                      }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      <step.icon className="h-8 w-8 text-white" />
-                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white text-primary text-sm flex items-center justify-center font-bold shadow-md">
-                        {step.num}
-                      </div>
-                    </motion.div>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80 p-0 overflow-hidden">
-                    <div className={`h-1 w-full bg-gradient-to-r ${step.color}`}></div>
-                    <div className="p-4">
-                      <h4 className="font-semibold text-lg">{step.title}</h4>
-                      <p className="text-muted-foreground">{step.desc}</p>
-                      <div className="mt-3 flex justify-end">
-                        <Button variant="ghost" size="sm" className="text-primary">Learn More</Button>
-                      </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
+                <motion.div 
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br border border-white/10 shadow-lg flex items-center justify-center text-2xl font-bold mb-6 cursor-pointer relative z-20"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${step.num === 1 ? 'var(--primary)' : step.num === 2 ? '#9061F9' : '#6366F1'} 0%, transparent 100%)`,
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                  }}
+                  whileHover={{ 
+                    scale: 1.1,
+                    boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
+                    rotateY: 15,
+                    rotateX: -15
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                >
+                  <step.icon className="h-8 w-8 text-white" />
+                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white text-primary text-sm flex items-center justify-center font-bold shadow-md">
+                    {step.num}
+                  </div>
+                </motion.div>
                 <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
                 <p>{step.desc}</p>
               </motion.div>
@@ -387,7 +374,7 @@ const Welcome: React.FC = () => {
         </div>
       </motion.div>
       
-      {/* Enhanced Footer */}
+      {/* Simplified Footer - removed navigation links */}
       <footer className="mt-auto py-8 border-t bg-gradient-to-t from-secondary/30 to-secondary/5">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-center mb-6">
@@ -406,21 +393,6 @@ const Welcome: React.FC = () => {
             <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 transition-colors duration-200">Schools</Badge>
             <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 transition-colors duration-200">Universities</Badge>
             <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 transition-colors duration-200">Training Centers</Badge>
-          </div>
-          
-          <div className="flex justify-center gap-6 mb-6">
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
-              Features
-            </Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
-              How It Works
-            </Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
-              Privacy
-            </Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
-              Terms
-            </Link>
           </div>
           
           <div className="text-center text-muted-foreground">
