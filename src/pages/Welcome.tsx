@@ -356,7 +356,7 @@ const Welcome: React.FC = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Get Started?</h2>
-              <p className="text-lg mb-8 md:mb-6 text-muted-foreground">Join thousands of educators who have already simplified their attendance tracking process.</p>
+              <p className="text-lg mb-8 md:mb-6 text-muted-foreground">Join the educators who have already simplified their attendance tracking process.</p>
               
               <motion.div 
                 whileHover={{ scale: 1.05 }}
