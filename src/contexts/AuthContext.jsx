@@ -19,19 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (name, email, password) => {
     try {
-      // First check if user already exists using auth API
-      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'dummy-password-for-check', // This will fail if user exists
-      });
-
-      // If we get a specific error, it means the user exists
-      if (checkError && checkError.message.includes('Invalid login credentials')) {
-        toast.error("A user with this email already exists");
-        return false;
-      }
-
-      // If we get any other error, proceed with signup
+      // Attempt to sign up directly - Supabase will handle duplicate email checks
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -41,7 +29,11 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        toast.error(error.message);
+        if (error.message.includes('User already registered')) {
+          toast.error("A user with this email already exists");
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
 
@@ -61,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   
       return false;
 
-    }catch (error) {
+    } catch (error) {
       console.error("Signup error:", error);
       toast.error("Failed to create account");
       return false;
