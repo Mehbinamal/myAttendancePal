@@ -44,7 +44,7 @@ const Signup = () => {
       if (error) {
         setPasswordError(error.message);
       } else {
-        navigate("/dashboard");
+        navigate("/login");
       }
     } finally {
       setIsSubmitting(false);
