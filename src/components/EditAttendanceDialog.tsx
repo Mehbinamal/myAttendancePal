@@ -33,14 +33,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface MarkAttendanceDialogProps {
+interface EditAttendanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  preSelectedSubject?: string;
+  attendanceId: string;
 }
 
-export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }: MarkAttendanceDialogProps) {
-  const { addAttendance, subjects, attendance } = useAttendance();
+export function EditAttendanceDialog({ open, onOpenChange, attendanceId }: EditAttendanceDialogProps) {
+  const { updateAttendance, subjects, attendance } = useAttendance();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({
@@ -53,7 +53,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
     },
   });
 
-  // Reset form when dialog opens/closes and set preSelectedSubject if provided
+  // Reset form when dialog opens/closes and set initial values
   useEffect(() => {
     if (!open) {
       form.reset({
@@ -62,26 +62,26 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
         hours: 1,
         note: "",
       });
-    } else if (preSelectedSubject) {
-      form.setValue("subject_id", preSelectedSubject);
+    } else if (attendanceId) {
+      const attendanceRecord = attendance.find(record => record.id === attendanceId);
+      if (attendanceRecord) {
+        form.reset({
+          subject_id: attendanceRecord.subject_id,
+          date: new Date(attendanceRecord.date),
+          status: attendanceRecord.status,
+          hours: attendanceRecord.hours,
+          note: attendanceRecord.note || "",
+        });
+      }
     }
-  }, [open, form, preSelectedSubject]);
+  }, [open, form, attendanceId, attendance]);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Check for existing attendance
       const formattedDate = format(data.date, "yyyy-MM-dd");
-      const existingAttendance = attendance.filter(
-        record => record.subject_id === data.subject_id && record.date === formattedDate
-      );
 
-      if (existingAttendance.length > 0) {
-        toast.error("Attendance already marked for this subject on this date");
-        return;
-      }
-
-      await addAttendance({
+      await updateAttendance(attendanceId, {
         subject_id: data.subject_id,
         date: formattedDate,
         status: data.status,
@@ -89,11 +89,10 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
         note: data.note || null,
       });
       
-      toast.success("Attendance marked successfully!");
       onOpenChange(false);
     } catch (error) {
-      console.error("Error marking attendance:", error);
-      toast.error("Failed to mark attendance");
+      console.error("Error updating attendance:", error);
+      toast.error("Failed to update attendance");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,9 +102,9 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Mark Attendance</DialogTitle>
+          <DialogTitle>Edit Attendance</DialogTitle>
           <DialogDescription>
-            Record attendance for a subject.
+            Modify attendance record for a subject.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -246,7 +245,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
             />
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Mark Attendance"}
+                {isSubmitting ? "Saving..." : "Update Attendance"}
               </Button>
             </DialogFooter>
           </form>

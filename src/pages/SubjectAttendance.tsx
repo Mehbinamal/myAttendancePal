@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CheckCircle, XCircle, Ban, ArrowLeft } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { MarkAttendanceDialog } from "@/components/MarkAttendanceDialog";
+import { EditAttendanceDialog } from "@/components/EditAttendanceDialog";
 import { toast } from "sonner";
 
 interface AttendanceRecord {
@@ -35,6 +35,7 @@ interface AttendanceRecord {
 const SubjectAttendance: React.FC = () => {
   const { subjectId } = useParams<{ subjectId: string }>();
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
+  const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
   const { attendance, subjects, getSubjectById } = useAttendance();
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [subject, setSubject] = useState<any>(null);
@@ -123,7 +124,13 @@ const SubjectAttendance: React.FC = () => {
     }
   };
 
+  const handleEditAttendance = (recordId: string) => {
+    setSelectedAttendanceId(recordId);
+    setMarkAttendanceOpen(true);
+  };
+
   const handleAddAttendance = () => {
+    setSelectedAttendanceId(null);
     setMarkAttendanceOpen(true);
   };
 
@@ -218,19 +225,39 @@ const SubjectAttendance: React.FC = () => {
         </TabsList>
 
         <TabsContent value="all">
-          <AttendanceTable records={attendanceRecords} getStatusBadge={getStatusBadge} formatDate={formatDate} />
+          <AttendanceTable 
+            records={attendanceRecords} 
+            getStatusBadge={getStatusBadge} 
+            formatDate={formatDate} 
+            onEdit={handleEditAttendance}
+          />
         </TabsContent>
 
         <TabsContent value="present">
-          <AttendanceTable records={filterRecords("present")} getStatusBadge={getStatusBadge} formatDate={formatDate} />
+          <AttendanceTable 
+            records={filterRecords("present")} 
+            getStatusBadge={getStatusBadge} 
+            formatDate={formatDate} 
+            onEdit={handleEditAttendance}
+          />
         </TabsContent>
 
         <TabsContent value="absent">
-          <AttendanceTable records={filterRecords("absent")} getStatusBadge={getStatusBadge} formatDate={formatDate} />
+          <AttendanceTable 
+            records={filterRecords("absent")} 
+            getStatusBadge={getStatusBadge} 
+            formatDate={formatDate} 
+            onEdit={handleEditAttendance}
+          />
         </TabsContent>
         
         <TabsContent value="not_taken">
-          <AttendanceTable records={filterRecords("not_taken")} getStatusBadge={getStatusBadge} formatDate={formatDate} />
+          <AttendanceTable 
+            records={filterRecords("not_taken")} 
+            getStatusBadge={getStatusBadge} 
+            formatDate={formatDate} 
+            onEdit={handleEditAttendance}
+          />
         </TabsContent>
       </Tabs>
 
@@ -247,9 +274,10 @@ interface AttendanceTableProps {
   records: AttendanceRecord[];
   getStatusBadge: (status: 'present' | 'absent' | 'not_taken') => JSX.Element;
   formatDate: (dateString: string) => string;
+  onEdit: (recordId: string) => void;
 }
 
-const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, getStatusBadge, formatDate }) => {
+const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, getStatusBadge, formatDate, onEdit }) => {
   if (records.length === 0) {
     return <p className="text-sm text-muted-foreground">No attendance records found.</p>;
   }
@@ -263,6 +291,7 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, getStatusBad
             <TableHead>Status</TableHead>
             <TableHead>Hours</TableHead>
             <TableHead>Note</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -272,6 +301,15 @@ const AttendanceTable: React.FC<AttendanceTableProps> = ({ records, getStatusBad
               <TableCell>{getStatusBadge(record.status)}</TableCell>
               <TableCell>{record.hours}</TableCell>
               <TableCell>{record.note || '-'}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(record.id)}
+                >
+                  Edit
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

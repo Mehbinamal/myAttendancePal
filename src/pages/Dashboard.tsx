@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ interface ClassInfo {
 
 const Dashboard: React.FC = () => {
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
-  const { subjects, getAttendanceStats, isLoading } = useAttendance();
+  const { subjects, getAttendanceStats, isLoading, attendance } = useAttendance();
   const [todayClasses, setTodayClasses] = useState<ClassInfo[]>([]);
   
   console.log("Rendering Dashboard component", { subjectsLength: subjects?.length, isLoading });
@@ -32,6 +31,7 @@ const Dashboard: React.FC = () => {
     if (!subjects) return;
     
     const classesForToday: ClassInfo[] = [];
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
     
     subjects.forEach(subject => {
       if (!subject.schedule) return;
@@ -48,13 +48,22 @@ const Dashboard: React.FC = () => {
           
           // Check if this entry is for today
           if (dayName.toLowerCase() === todayName.toLowerCase()) {
-            classesForToday.push({
-              id: subject.id,
-              subject: subject.name,
-              start_time: startTime,
-              end_time: endTime,
-              day: todayName
-            });
+            // Check if attendance is already marked for this subject today
+            const hasAttendanceMarked = attendance.some(record => 
+              record.subject_id === subject.id && 
+              record.date === today
+            );
+            
+            // Only add to classesForToday if attendance hasn't been marked
+            if (!hasAttendanceMarked) {
+              classesForToday.push({
+                id: subject.id,
+                subject: subject.name,
+                start_time: startTime,
+                end_time: endTime,
+                day: todayName
+              });
+            }
           }
         }
       });
@@ -62,7 +71,7 @@ const Dashboard: React.FC = () => {
     
     console.log("Today's classes:", classesForToday);
     setTodayClasses(classesForToday);
-  }, [subjects, todayName]);
+  }, [subjects, todayName, attendance]);
   
   if (isLoading) {
     return (
