@@ -261,10 +261,10 @@ const SubjectAttendance: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      <MarkAttendanceDialog 
+      <EditAttendanceDialog 
         open={markAttendanceOpen} 
         onOpenChange={setMarkAttendanceOpen} 
-        preSelectedSubject={subjectId}
+        attendanceId={selectedAttendanceId}
       />
     </div>
   );
