@@ -153,7 +153,6 @@ export const AttendanceProvider = ({ children }) => {
     setSubjects(prev =>
       prev.map(subject => (subject.id === id ? data[0] : subject))
     );
-    toast.success("Subject updated successfully");
   };
 
   const deleteSubject = async (id) => {

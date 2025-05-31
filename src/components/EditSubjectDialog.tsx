@@ -46,7 +46,7 @@ const daysOfWeek = [
 ];
 
 export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDialogProps) {
-  const { updateSubject } = useAttendance();
+  const { updateSubject, loadData } = useAttendance();
   const [selectedTab, setSelectedTab] = useState("basic");
   const [scheduleItems, setScheduleItems] = useState<Array<{
     day: string;
@@ -170,6 +170,7 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
         description: data.description || "",
       });
       
+      await loadData(); // Refresh the data after update
       onOpenChange(false);
       toast.success("Subject updated successfully!");
     } catch (error) {
