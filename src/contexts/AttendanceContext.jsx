@@ -278,6 +278,73 @@ export const AttendanceProvider = ({ children }) => {
     return subjects.find(subject => subject.id === id);
   };
 
+  const checkScheduleConflict = (newSchedule, subjectId = null) => {
+    // Parse the new schedule into time slots
+    const newTimeSlots = newSchedule.split(';').map(entry => {
+      const match = entry.trim().match(/^(\w+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+      if (match) {
+        const [_, day, startTime, endTime] = match;
+        return {
+          day: day.toLowerCase(),
+          startTime,
+          endTime
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Check each existing subject's schedule for conflicts
+    for (const subject of subjects) {
+      // Skip the subject being edited
+      if (subjectId && subject.id === subjectId) continue;
+      
+      if (!subject.schedule) continue;
+
+      const existingTimeSlots = subject.schedule.split(';').map(entry => {
+        const match = entry.trim().match(/^(\w+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+        if (match) {
+          const [_, day, startTime, endTime] = match;
+          return {
+            day: day.toLowerCase(),
+            startTime,
+            endTime
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      // Check for conflicts between new and existing time slots
+      for (const newSlot of newTimeSlots) {
+        for (const existingSlot of existingTimeSlots) {
+          if (newSlot.day === existingSlot.day) {
+            // Convert times to minutes for easier comparison
+            const newStart = timeToMinutes(newSlot.startTime);
+            const newEnd = timeToMinutes(newSlot.endTime);
+            const existingStart = timeToMinutes(existingSlot.startTime);
+            const existingEnd = timeToMinutes(existingSlot.endTime);
+
+            // Check if there's any overlap
+            if ((newStart < existingEnd && newEnd > existingStart)) {
+              return {
+                hasConflict: true,
+                conflictingSubject: subject.name,
+                day: newSlot.day,
+                time: `${newSlot.startTime} - ${newSlot.endTime}`
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return { hasConflict: false };
+  };
+
+  const timeToMinutes = (time) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
   const getAttendanceStats = () => {
     const stats = {
       total: attendance.length - attendance.filter(record => record.status === 'not_taken').length,
@@ -324,7 +391,8 @@ export const AttendanceProvider = ({ children }) => {
       getAttendanceBySubject,
       getSubjectById,
       getAttendanceStats,
-      getAttendanceForDate
+      getAttendanceForDate,
+      checkScheduleConflict
     }}>
       {children}
     </AttendanceContext.Provider>

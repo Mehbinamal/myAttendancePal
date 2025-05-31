@@ -40,7 +40,7 @@ const daysOfWeek = [
 ];
 
 export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) {
-  const { addSubject } = useAttendance();
+  const { addSubject, checkScheduleConflict } = useAttendance();
   const [selectedTab, setSelectedTab] = useState("basic");
   const [scheduleItems, setScheduleItems] = useState<Array<{
     day: string;
@@ -113,6 +113,13 @@ export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) 
       console.log("Submitting subject data:", data);
       const schedule = formatSchedule();
       console.log("Formatted schedule:", schedule);
+      
+      // Check for schedule conflicts
+      const { hasConflict, conflictingSubject, day, time } = checkScheduleConflict(schedule);
+      if (hasConflict) {
+        toast.error(`Schedule conflict detected! This time slot overlaps with ${conflictingSubject} on ${day} at ${time}`);
+        return;
+      }
       
       await addSubject({
         name: data.name,

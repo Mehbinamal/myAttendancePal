@@ -46,7 +46,7 @@ const daysOfWeek = [
 ];
 
 export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDialogProps) {
-  const { updateSubject, loadData } = useAttendance();
+  const { updateSubject, loadData, checkScheduleConflict } = useAttendance();
   const [selectedTab, setSelectedTab] = useState("basic");
   const [scheduleItems, setScheduleItems] = useState<Array<{
     day: string;
@@ -162,6 +162,13 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
       if (!subject) return;
       
       const schedule = formatSchedule();
+      
+      // Check for schedule conflicts
+      const { hasConflict, conflictingSubject, day, time } = checkScheduleConflict(schedule, subject.id);
+      if (hasConflict) {
+        toast.error(`Schedule conflict detected! This time slot overlaps with ${conflictingSubject} on ${day} at ${time}`);
+        return;
+      }
       
       await updateSubject(subject.id, {
         name: data.name,
