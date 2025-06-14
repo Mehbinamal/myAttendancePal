@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
         };
         localStorage.setItem("user", JSON.stringify(userToStore));
         setUser(userToStore);
-        toast.success("Your account has been created, and a verification email has been sent. Please check your inbox.");
+        toast.success("Your account has been created, Please login to continue");
         return true;
       }
   
