@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
+import type { ClassInfo } from "../pages/Dashboard";
 
 const formSchema = z.object({
   subject_id: z.string({
@@ -36,10 +37,10 @@ type FormValues = z.infer<typeof formSchema>;
 interface MarkAttendanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  preSelectedSubject?: string;
+  subject?: ClassInfo | null;
 }
 
-export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }: MarkAttendanceDialogProps) {
+export function MarkAttendanceDialog({ open, onOpenChange, subject }: MarkAttendanceDialogProps) {
   const { addAttendance, subjects, attendance } = useAttendance();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,7 +54,7 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
     },
   });
 
-  // Reset form when dialog opens/closes and set preSelectedSubject if provided
+  // Reset form when dialog opens/closes and set subject if provided
   useEffect(() => {
     if (!open) {
       form.reset({
@@ -62,10 +63,10 @@ export function MarkAttendanceDialog({ open, onOpenChange, preSelectedSubject }:
         hours: 1,
         note: "",
       });
-    } else if (preSelectedSubject) {
-      form.setValue("subject_id", preSelectedSubject);
+    } else if (subject) {
+      form.setValue("subject_id", subject.id);
     }
-  }, [open, form, preSelectedSubject]);
+  }, [open, form, subject]);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);

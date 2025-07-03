@@ -5,7 +5,7 @@ import { CalendarIcon, CheckCircle } from "lucide-react";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { MarkAttendanceDialog } from "@/components/MarkAttendanceDialog";
 
-interface ClassInfo {
+export interface ClassInfo {
   id: string;
   subject: string;
   start_time: string;
@@ -15,6 +15,7 @@ interface ClassInfo {
 
 const Dashboard: React.FC = () => {
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
   const { subjects, getAttendanceStats, isLoading, attendance } = useAttendance();
   const [todayClasses, setTodayClasses] = useState<ClassInfo[]>([]);
   
@@ -158,7 +159,10 @@ const Dashboard: React.FC = () => {
                 <CardFooter className="p-4">
                   <Button 
                     size="sm" 
-                    onClick={() => setMarkAttendanceOpen(true)}
+                    onClick={() => {
+                      setSelectedClass(classItem);
+                      setMarkAttendanceOpen(true);
+                    }}
                   >
                     Mark
                   </Button>
@@ -175,7 +179,7 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      <MarkAttendanceDialog open={markAttendanceOpen} onOpenChange={setMarkAttendanceOpen} />
+      <MarkAttendanceDialog open={markAttendanceOpen} onOpenChange={setMarkAttendanceOpen} subject={selectedClass} />
     </div>
   );
 };
