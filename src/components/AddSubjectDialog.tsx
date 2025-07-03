@@ -136,7 +136,6 @@ export function AddSubjectDialog({ open, onOpenChange }: AddSubjectDialogProps) 
       setEndTime("10:00");
       setSelectedTab("basic");
       onOpenChange(false);
-      toast.success("Subject added successfully!");
     } catch (error) {
       console.error("Error adding subject:", error);
       toast.error("Failed to add subject");

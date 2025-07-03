@@ -35,6 +35,7 @@ interface AttendanceRecord {
 const SubjectAttendance: React.FC = () => {
   const { subjectId } = useParams<{ subjectId: string }>();
   const [markAttendanceOpen, setMarkAttendanceOpen] = useState(false);
+  const [EditAttendanceOpen, setEditAttendanceOpen] = useState(false);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
   const { attendance, subjects, getSubjectById } = useAttendance();
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -126,7 +127,7 @@ const SubjectAttendance: React.FC = () => {
 
   const handleEditAttendance = (recordId: string) => {
     setSelectedAttendanceId(recordId);
-    setMarkAttendanceOpen(true);
+    setEditAttendanceOpen(true);
   };
 
   const handleAddAttendance = () => {
@@ -262,9 +263,14 @@ const SubjectAttendance: React.FC = () => {
       </Tabs>
 
       <EditAttendanceDialog 
+        open={EditAttendanceOpen} 
+        onOpenChange={setEditAttendanceOpen} 
+        attendanceId={selectedAttendanceId}
+      />
+
+      <MarkAttendanceDialog 
         open={markAttendanceOpen} 
         onOpenChange={setMarkAttendanceOpen} 
-        attendanceId={selectedAttendanceId}
       />
     </div>
   );
