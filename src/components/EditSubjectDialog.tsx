@@ -179,7 +179,6 @@ export function EditSubjectDialog({ open, onOpenChange, subject }: EditSubjectDi
       
       await loadData(); // Refresh the data after update
       onOpenChange(false);
-      toast.success("Subject updated successfully!");
     } catch (error) {
       console.error("Error updating subject:", error);
       toast.error("Failed to update subject");

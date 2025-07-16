@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   AlertDialog,
@@ -31,7 +30,6 @@ export function DeleteSubjectDialog({ open, onOpenChange, subject }: DeleteSubje
       
       await deleteSubject(subject.id);
       onOpenChange(false);
-      toast.success(`${subject.name} has been deleted`);
     } catch (error) {
       console.error("Error deleting subject:", error);
       toast.error("Failed to delete subject");

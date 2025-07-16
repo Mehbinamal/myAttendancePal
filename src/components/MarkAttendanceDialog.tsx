@@ -90,7 +90,6 @@ export function MarkAttendanceDialog({ open, onOpenChange, subject }: MarkAttend
         note: data.note || null,
       });
       
-      toast.success("Attendance marked successfully!");
       onOpenChange(false);
     } catch (error) {
       console.error("Error marking attendance:", error);
